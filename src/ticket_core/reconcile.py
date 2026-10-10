@@ -9,6 +9,8 @@ from ticket_core.marker import parse_marker
 class Tab:
     tab_id: str
     label: str
+    # None when the caller does not know it (Phase 1 callers); recovery needs it.
+    workspace_id: str | None = None
 
 
 @dataclass(frozen=True)
