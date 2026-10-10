@@ -32,12 +32,11 @@ def bound_binding(snapshot: Snapshot, pane_id: str) -> Binding | None:
 
 def invalidate_status(cache_path, key: str) -> None:
     """Drop one key from the session status cache so the next fetch asks Jira again."""
-    path = Path(cache_path)
-    if not path.exists():
-        return
-    cache = json.loads(path.read_text())
-    if cache.pop(key, None) is not None:
-        path.write_text(json.dumps(cache, indent=2))
+    from ticket_core.sync import load_cache, write_cache
+
+    cache = load_cache(cache_path)
+    cache.pop(key, None)
+    write_cache(cache_path, cache)  # also repairs an unreadable cache
 
 
 def apply_status(key: str, status: str, *, jira, herdr, site, cache_path, sleep=time.sleep,

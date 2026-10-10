@@ -1,6 +1,8 @@
 """Token sync: read the snapshot (bounded retry, D18), fetch statuses (cached), and make each pane's tokens match its own label."""
 
 import json
+import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -30,14 +32,30 @@ def snapshot_with_retry(herdr, *, attempts=ATTEMPTS, delay=DELAY, sleep=time.sle
     return snap
 
 
+def load_cache(path) -> dict:
+    """The status cache, or {} when missing or unreadable. Several plugin processes share it."""
+    try:
+        return json.loads(Path(path).read_text())
+    except (FileNotFoundError, ValueError):
+        return {}
+
+
+def write_cache(path, cache: dict) -> None:
+    """Replace the cache atomically, so a concurrent reader never sees a partial file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".statuses-", suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        json.dump(cache, f, indent=2)
+    os.replace(tmp, path)
+
+
 def fetch_statuses(snap: Snapshot, jira, site, cache_path: Path | None, *, now=time.time,
                    ttl=STATUS_TTL) -> dict[str, str]:
     """Status per bound key. Reuses a cached value within `ttl`; a failed lookup is left out."""
     from ticket_core.adapters.jira import AtlasError
 
-    cache = {}
-    if cache_path and cache_path.exists():
-        cache = json.loads(cache_path.read_text())
+    cache = load_cache(cache_path) if cache_path else {}
     statuses, dirty = {}, False
     for key in sorted(bound_keys(snap)):
         entry = cache.get(key)
@@ -53,8 +71,7 @@ def fetch_statuses(snap: Snapshot, jira, site, cache_path: Path | None, *, now=t
             cache[key] = {"status": status, "at": now()}
             dirty = True
     if cache_path and dirty:
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        cache_path.write_text(json.dumps(cache, indent=2))
+        write_cache(cache_path, cache)
     return statuses
 
 
