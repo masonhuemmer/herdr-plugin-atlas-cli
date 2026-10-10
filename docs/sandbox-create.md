@@ -31,3 +31,10 @@ Then confirm the issue:
 ## After recording
 
 If the stdout is not JSON with a `key` field, update `AtlasJira.create` and `tests/contract/fixtures/jira_dry_run_create.json` to the recorded shape, then run `.venv/bin/python -m pytest -q tests/contract`. Tick the Phase 3 manual items in `plan.md`.
+
+## Result (recorded 2026-10-10)
+Command: `atlas jira create --project SDO --type Task --summary "[TEST] herdr-ticket sandbox create - safe to close" --site sesamidevel`
+Created **SDO-602** (test ticket, safe to close; not a sandbox project, it is SDO).
+Output shape (exit 0):
+`{"key","site","browse_url","summary","status","issuetype","priority","assignee","reporter","created","updated","project"}`
+Status on creation: `To Do`. The `key` field is present, so `create` returns it.
