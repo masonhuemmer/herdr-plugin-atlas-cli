@@ -1,0 +1,44 @@
+id = "herdr-plugin-atlas-cli"
+name = "Herdr Atlas CLI"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Bind Herdr tabs to Jira tickets"
+platforms = ["macos", "linux"]
+
+[[startup]]
+command = ["sh", "bin/herdr-plugin-atlas-cli", "startup"]
+
+[[actions]]
+id = "new-ticket-tab"
+title = "New ticket tab"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "open-picker"]
+
+[[actions]]
+id = "set-status"
+title = "Set ticket status"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "open-status"]
+
+[[actions]]
+id = "reconcile"
+title = "Reconcile ticket rows"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
+
+[[panes]]
+id = "picker"
+title = "Ticket picker"
+placement = "overlay"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "picker"]
+
+[[panes]]
+id = "status"
+title = "Ticket status"
+placement = "overlay"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "status"]
+
+[[events]]
+on = "pane.created"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
+
+[[events]]
+on = "tab.renamed"
+command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
