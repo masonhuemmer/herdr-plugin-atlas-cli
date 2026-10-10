@@ -36,6 +36,9 @@ class FakeJira:
         self.searches: list[tuple[str, str]] = []
         self.log = [] if log is None else log
 
+    def status(self, key: str, site: str) -> str:
+        return getattr(self, 'statuses', {}).get(key, 'To Do')
+
     def search(self, jql: str, site: str) -> list[Issue]:
         self.searches.append((jql, site))
         return list(self.search_results)

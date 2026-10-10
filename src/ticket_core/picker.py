@@ -44,8 +44,10 @@ def _no_checkpoint(name: str) -> None:
 
 class Picker:
     def __init__(self, *, store: StateStore, herdr, jira, site, project, issue_type, assignee,
-                 capture: Capture, now, checkpoint=_no_checkpoint, sleep=time.sleep):
+                 capture: Capture, now, checkpoint=_no_checkpoint, sleep=time.sleep,
+                 cache_path=None):
         self.store = store
+        self.cache_path = cache_path
         self.herdr = herdr
         self.jira = jira
         self.site = site
@@ -57,6 +59,11 @@ class Picker:
         self.checkpoint = checkpoint
         self.sleep = sleep
 
+    def _sync(self) -> None:
+        # Same sync as startup: tokens carry the Jira status, cached per session.
+        sync_tokens(self.herdr, jira=self.jira, site=self.site, cache_path=self.cache_path,
+                    sleep=self.sleep)
+
     def pending_stage(self) -> str | None:
         pending = self.store.read().pending
         return pending.stage if pending else None
@@ -66,13 +73,13 @@ class Picker:
         prompt = recover(self.store, self.herdr, self.jira, site=self.site,
                          checkpoint=self.checkpoint)
         if prompt is None:
-            sync_tokens(self.herdr, sleep=self.sleep)
+            self._sync()
         return prompt
 
     def answer(self, choice: tuple) -> None:
         recover(self.store, self.herdr, self.jira, site=self.site, choice=choice,
                 checkpoint=self.checkpoint)
-        sync_tokens(self.herdr, sleep=self.sleep)
+        self._sync()
 
     def search(self, jql: str) -> list[Issue]:
         return self.jira.search(jql, self.site)
@@ -80,13 +87,13 @@ class Picker:
     def bind(self, issue: Issue) -> None:
         lookup_bind(self.store, self.herdr, self.capture, issue.key, issue.summary, self.site,
                     checkpoint=self.checkpoint)
-        sync_tokens(self.herdr, sleep=self.sleep)
+        self._sync()
 
     def create(self, description: str) -> None:
         create_ticket(self.store, self.herdr, self.jira, self.capture, description,
                       project=self.project, issue_type=self.issue_type, assignee=self.assignee,
                       site=self.site, now=self.now(), checkpoint=self.checkpoint)
-        sync_tokens(self.herdr, sleep=self.sleep)
+        self._sync()
 
     def skip(self) -> None:
         self.herdr.tab_create(self.capture.workspace_id, self.capture.cwd)

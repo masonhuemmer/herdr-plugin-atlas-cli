@@ -106,6 +106,7 @@ def cmd_picker(env, herdr=None, jira=None) -> int:
         jira=jira or AtlasJira(), site=config.site, project=config.project,
         issue_type=config.issue_type, assignee=config.assignee, capture=capture,
         now=datetime.now, checkpoint=crash_checkpoint(env),
+        cache_path=directory / "statuses.json",
     )
     return run(picker)
 
