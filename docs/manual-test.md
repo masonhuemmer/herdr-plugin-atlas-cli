@@ -86,4 +86,9 @@ Run only in the named session `ticket-test` (`--session ticket-test`), and only 
 - **M11 Site change: pass.** With site changed, startup unbound the tab (marker removed, token cleared, label kept as the title). `state.json` recorded the new site. Config restored and startup re-run to set the site back.
 - Not run: M4-M7 and M12 (need the picker TUI), M10 (needs agent panes; sidebar row not seen), M2/M3 (global, not agreed).
 
+## M2 and M3 results (2026-10-10)
+
+- **M2 Key: pass (partial).** `ctrl+b t` opened a plain tab (moved `new_tab` works). `ctrl+b c` returned an error because the plugin was not yet linked. Exact on-screen text not recorded. The server log has no entry for it. Config backup: `~/herdr-config-before-m2.toml`.
+- **M3 Plugin: pass.** `herdr plugin link ~/src/herdr-ticket` succeeded. Actions `new-ticket-tab` and `reconcile` are listed. The manifest accepted the `pane.created` and `tab.renamed` events. Scope: the link is global. `default` also lists the plugin as enabled, so its events run in every session.
+
 - [ ] **Gate.** The plugin works in the named session. Do not run any of M1–M12 against the normal Herdr session before this gate.
