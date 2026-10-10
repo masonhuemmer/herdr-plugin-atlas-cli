@@ -1,4 +1,4 @@
-"""Plugin config (`~/.config/herdr-ticket/config.toml`) and per-session paths. Stdlib only."""
+"""Plugin config (`~/.config/herdr-plugin-jira-bar/config.toml`) and per-session paths. Stdlib only."""
 
 import tomllib
 from dataclasses import dataclass
@@ -22,7 +22,7 @@ class Config:
 
 
 def ticket_home() -> Path:
-    return Path("~/.config/herdr-ticket").expanduser()
+    return Path("~/.config/herdr-plugin-jira-bar").expanduser()
 
 
 def herdr_config_path() -> Path:

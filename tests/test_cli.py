@@ -25,7 +25,7 @@ def home(tmp_path, monkeypatch):
 
 
 def _write_config(home):
-    d = home / ".config" / "herdr-ticket"
+    d = home / ".config" / "herdr-plugin-jira-bar"
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.toml").write_text(CONFIG)
 
@@ -44,7 +44,7 @@ def test_open_picker_writes_the_capture_and_opens_the_overlay(home):
     assert read_capture(session).workspace_id == "w7"
     assert read_capture(session).cwd == "/work"
     [(argv, kw)] = calls
-    assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-ticket",
+    assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-plugin-jira-bar",
                     "--entrypoint", "picker"]
     assert kw == {"check": True}
 
@@ -115,7 +115,7 @@ def test_install_writes_the_row_and_prints_the_keys_hint(home, capsys):
     assert cli.main(["install"], env=_env(home)) == 0
     assert "$ticket_status" in herdr_config_path().read_text()
     out = capsys.readouterr().out
-    assert 'command = "herdr-ticket.new-ticket-tab"' in out
+    assert 'command = "herdr-plugin-jira-bar.new-ticket-tab"' in out
     assert "[[keys.command]]" in out
 
 
@@ -131,7 +131,7 @@ def test_install_is_safe_to_run_twice(home):
 def test_wrapper_runs_install_end_to_end_under_a_temp_home(home):
     _write_config(home)
     env = {"HOME": str(home), "PATH": os.environ["PATH"]}  # the PATH the shell gives python3
-    proc = subprocess.run(["sh", "bin/herdr-ticket", "install"], cwd=ROOT, env=env,
+    proc = subprocess.run(["sh", "bin/herdr-plugin-jira-bar", "install"], cwd=ROOT, env=env,
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert "$ticket_status" in herdr_config_path().read_text()
@@ -145,7 +145,7 @@ def test_open_status_writes_the_pane_capture_and_opens_the_status_overlay(home):
 
     assert read_status_capture(ticket_home() / "ticket-test") == "p3"
     [(argv, kw)] = calls
-    assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-ticket",
+    assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-plugin-jira-bar",
                     "--entrypoint", "status"]
     assert kw == {"check": True}
 

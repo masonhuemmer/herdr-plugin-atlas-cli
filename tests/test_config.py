@@ -30,7 +30,7 @@ def test_session_name_comes_from_the_socket_path():
 
 def test_ticket_home_follows_home(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    assert ticket_home() == tmp_path / ".config" / "herdr-ticket"
+    assert ticket_home() == tmp_path / ".config" / "herdr-plugin-jira-bar"
 
 
 def test_statuses_default_when_the_key_is_absent(tmp_path):

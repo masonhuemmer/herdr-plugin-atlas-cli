@@ -1,44 +1,44 @@
-id = "herdr-ticket"
-name = "Herdr Ticket"
+id = "herdr-plugin-jira-bar"
+name = "Herdr Jira Bar"
 version = "0.1.0"
 min_herdr_version = "0.9.1"
 description = "Bind Herdr tabs to Jira tickets"
 platforms = ["macos", "linux"]
 
 [[startup]]
-command = ["sh", "bin/herdr-ticket", "startup"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "startup"]
 
 [[actions]]
 id = "new-ticket-tab"
 title = "New ticket tab"
-command = ["sh", "bin/herdr-ticket", "open-picker"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "open-picker"]
 
 [[actions]]
 id = "set-status"
 title = "Set ticket status"
-command = ["sh", "bin/herdr-ticket", "open-status"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "open-status"]
 
 [[actions]]
 id = "reconcile"
 title = "Reconcile ticket rows"
-command = ["sh", "bin/herdr-ticket", "reconcile"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "reconcile"]
 
 [[panes]]
 id = "picker"
 title = "Ticket picker"
 placement = "overlay"
-command = ["sh", "bin/herdr-ticket", "picker"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "picker"]
 
 [[panes]]
 id = "status"
 title = "Ticket status"
 placement = "overlay"
-command = ["sh", "bin/herdr-ticket", "status"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "status"]
 
 [[events]]
 on = "pane.created"
-command = ["sh", "bin/herdr-ticket", "reconcile"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "reconcile"]
 
 [[events]]
 on = "tab.renamed"
-command = ["sh", "bin/herdr-ticket", "reconcile"]
+command = ["sh", "bin/herdr-plugin-jira-bar", "reconcile"]
