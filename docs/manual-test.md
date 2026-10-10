@@ -14,7 +14,7 @@ Run only in the named session `ticket-test` (`--session ticket-test`), and only 
 
 ## Checklist
 
-- [ ] **M1 Config.** Create `~/.config/herdr-ticket/config.toml` with `site = "<SITE>"`, `project = "<SANDBOX_PROJECT>"`, `issue_type = "Task"`, `assignee = "<OPERATOR_ACCOUNT_ID>"`. Run `sh ~/src/herdr-ticket/bin/herdr-ticket install`.
+- [x] **M1 Config.** (run 2026-10-10: config written, install appended `[ui.sidebar.agents]` with backup `config.toml.bak-20261010131511`, second run reported nothing changed. Reload step not yet run.) Create `~/.config/herdr-ticket/config.toml` with `site = "<SITE>"`, `project = "<SANDBOX_PROJECT>"`, `issue_type = "Task"`, `assignee = "<OPERATOR_ACCOUNT_ID>"`. Run `sh ~/src/herdr-ticket/bin/herdr-ticket install`.
   - Expected: the planned change is printed, then `Added [ui.sidebar.agents] ...` with a backup path, then the `[keys]` snippet. A `config.toml.bak-<YYYYmmddHHMMSS>` file exists next to `~/.config/herdr/config.toml`. The file has `["$ticket"]` in `rows`.
   - Run `sh ~/src/herdr-ticket/bin/herdr-ticket install` a second time. Expected: `nothing changed`, and no second backup.
   - Run `/Users/mason/.local/bin/herdr server reload-config`.
