@@ -79,4 +79,11 @@ Run only in the named session `ticket-test` (`--session ticket-test`), and only 
   | `tab_call` | tab created, before `tab_created` | one match in the workspace is adopted without asking; after one reconcile the token is on every pane of that tab |
   | `tab_created` | write | token reported and `pending` cleared |
 
+## CLI results (ticket-test, run 2026-10-10 by the agent; picker and visual steps not run)
+
+- **M8 Rename (CLI part): pass.** Renaming the tab removed the marker; reconcile cleared the `ticket` token. Restoring the marker and reconciling set it back. Row disappearance on screen not checked.
+- **M9 Restart: pass.** The label persisted in `session.json` across `server stop` and start. Startup reconcile restored `ticket=SDO-602` on the bound pane. Startup attempts before a tab appeared: 1 (the tab was already in the snapshot), so D18's 20 attempts is not yet measured.
+- **M11 Site change: pass.** With site changed, startup unbound the tab (marker removed, token cleared, label kept as the title). `state.json` recorded the new site. Config restored and startup re-run to set the site back.
+- Not run: M4-M7 and M12 (need the picker TUI), M10 (needs agent panes; sidebar row not seen), M2/M3 (global, not agreed).
+
 - [ ] **Gate.** The plugin works in the named session. Do not run any of M1–M12 against the normal Herdr session before this gate.
