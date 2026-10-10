@@ -5,10 +5,10 @@ from datetime import datetime
 from pathlib import Path
 
 ROW = "$ticket"
-TITLE_ROW = "$ticket_title"
+STATUS_ROW = "$ticket_status"
 BLOCK = (
     "[ui.sidebar.agents]\n"
-    'rows = [["state_icon", "machine", "workspace", "tab"], ["agent"], ["$ticket", "$ticket_title"]]\n'
+    'rows = [["state_icon", "machine", "workspace", "tab"], ["agent"], ["$ticket", "$ticket_status"]]\n'
 )
 KEYS_HINT = """\
 Tab key (manual step M2; install does not write [keys]). Add to ~/.config/herdr/config.toml,
@@ -49,7 +49,7 @@ def install(config_path, now: datetime, emit=print) -> tuple[bool, str]:
             return False, f"{ROW} is already a row in [ui.sidebar.agents]; nothing changed."
         return False, (
             f"[ui.sidebar.agents] already exists in {path}; nothing changed. "
-            f'Add ["{ROW}", "{TITLE_ROW}"] as a row in rows by hand.'
+            f'Add ["{ROW}", "{STATUS_ROW}"] as a row in rows by hand.'
         )
 
     head = text if not text or text.endswith("\n") else text + "\n"

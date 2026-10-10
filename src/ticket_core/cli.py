@@ -34,6 +34,11 @@ def _need(env, name: str) -> str:
         raise CliError(f"{name} is not set; run this from a Herdr plugin action") from None
 
 
+def _status_sync_args(env, config_site) -> dict:
+    return {"jira": AtlasJira(), "site": config_site,
+            "cache_path": session_dir(env) / "statuses.json"}
+
+
 def cmd_startup(env, herdr=None) -> None:
     config = _config()
     herdr = herdr or HerdrAdapter()
@@ -43,11 +48,17 @@ def cmd_startup(env, herdr=None) -> None:
         apply_site_change(store, herdr, config.site)
     except Busy:
         print("herdr-ticket: picker holds the state lock; site check skipped", file=sys.stderr)
-    sync_tokens(herdr)
+    sync_tokens(herdr, **_status_sync_args(env, config.site))
 
 
 def cmd_reconcile(env, herdr=None) -> None:
-    sync_tokens(herdr or HerdrAdapter())
+    # Runs on every pane creation in every session; without a config it still clears tokens.
+    try:
+        site = _config().site
+    except ConfigError:
+        site = None
+    args = _status_sync_args(env, site) if site else {}
+    sync_tokens(herdr or HerdrAdapter(), **args)
 
 
 def _plugin_context(env) -> dict:

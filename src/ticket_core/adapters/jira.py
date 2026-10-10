@@ -29,6 +29,10 @@ class AtlasJira:
         out = json.loads(self._run(["search", "--jql", jql, "--site", site]))
         return [Issue(item["key"], item["summary"]) for item in out["items"]]
 
+    def status(self, key: str, site: str) -> str | None:
+        out = json.loads(self._run(["get", key, "--site", site]))
+        return out.get("status")
+
     def create(self, project, issue_type, summary, assignee, site, dry_run=False) -> str | None:
         """Return the new key. A dry run creates nothing and returns None."""
         args = ["create", "--project", project, "--type", issue_type, "--summary", summary,

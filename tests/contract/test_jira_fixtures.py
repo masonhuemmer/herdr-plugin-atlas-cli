@@ -67,3 +67,12 @@ def test_comment_dry_run_fixture_and_flag_only_when_requested():
     assert dry[:6] == [ATLAS, "jira", "comment", "SDO-601", "--body", "herdr-ticket dry run"]
     assert "--site" in dry and dry[dry.index("--site") + 1] == SITE
     assert "--dry-run" not in real
+
+
+def test_status_reads_the_status_field_of_get():
+    from ticket_core.adapters.jira import AtlasJira
+    from fake_run import FakeRun
+
+    run = FakeRun(stdout='{"key": "SDO-1", "status": "In Progress"}')
+    assert AtlasJira(run=run, atlas="/bin/atlas").status("SDO-1", "acme") == "In Progress"
+    assert run.argv == [["/bin/atlas", "jira", "get", "SDO-1", "--site", "acme"]]

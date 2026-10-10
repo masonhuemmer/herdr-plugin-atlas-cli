@@ -53,11 +53,11 @@ def test_clear_token_argv():
     run = FakeRun()
     _herdr(run).clear_token("w8:p3")
     assert run.argv == [[HERDR, "pane", "report-metadata", "w8:p3", "--source", "herdr-ticket",
-                         "--clear-token", "ticket", "--clear-token", "ticket_title"]]
+                         "--clear-token", "ticket", "--clear-token", "ticket_status"]]
 
 
-def test_report_token_argv_carries_key_and_title():
+def test_report_token_argv_carries_key_and_status():
     run = FakeRun()
-    _herdr(run).report_token("w8:p3", "SDO-5", "Fix login")
+    _herdr(run).report_token("w8:p3", "SDO-5", "In Progress")
     assert run.argv == [[HERDR, "pane", "report-metadata", "w8:p3", "--source", "herdr-ticket",
-                         "--token", "ticket=SDO-5", "--token", "ticket_title=Fix login"]]
+                         "--token", "ticket=SDO-5", "--token", "ticket_status=In Progress"]]

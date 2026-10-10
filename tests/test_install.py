@@ -7,7 +7,7 @@ import ticket_core.install as install_mod
 from ticket_core.install import InstallError, install
 
 NOW = datetime(2026, 10, 10, 12, 0, 0)
-ROW = ["$ticket", "$ticket_title"]
+ROW = ["$ticket", "$ticket_status"]
 
 
 def _rows(path):
@@ -48,7 +48,7 @@ def test_existing_agents_table_is_left_alone_and_the_row_is_named(tmp_path):
     assert changed is False
     assert path.read_text() == original
     assert list(tmp_path.glob("*.bak-*")) == []
-    assert '["$ticket", "$ticket_title"]' in message
+    assert '["$ticket", "$ticket_status"]' in message
 
 
 def test_a_row_that_already_names_ticket_changes_nothing(tmp_path):
