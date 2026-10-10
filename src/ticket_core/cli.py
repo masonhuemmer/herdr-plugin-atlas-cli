@@ -1,6 +1,7 @@
 """Plugin entry point. bin/herdr-ticket runs `python3 -m ticket_core.cli <command>`."""
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -49,9 +50,32 @@ def cmd_reconcile(env, herdr=None) -> None:
     sync_tokens(herdr or HerdrAdapter())
 
 
+def _plugin_context(env) -> dict:
+    raw = env.get("HERDR_PLUGIN_CONTEXT_JSON")
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return {}
+
+
+def _action_workspace_and_cwd(env) -> tuple[str, str]:
+    # Plugin actions get HERDR_WORKSPACE_ID and HERDR_PLUGIN_CONTEXT_JSON (plugins.mdx, v0.9.1);
+    # HERDR_ACTIVE_* is what custom keybinding commands get, kept as a fallback.
+    context = _plugin_context(env)
+    workspace = env.get("HERDR_WORKSPACE_ID") or env.get("HERDR_ACTIVE_WORKSPACE_ID") \
+        or context.get("workspace_id")
+    cwd = context.get("focused_pane_cwd") or context.get("workspace_cwd") \
+        or env.get("HERDR_ACTIVE_PANE_CWD")
+    if not workspace or not cwd:
+        raise CliError("no workspace or cwd in the plugin action environment; run this from a Herdr plugin action")
+    return workspace, cwd
+
+
 def cmd_open_picker(env, run=subprocess.run) -> None:
-    write_capture(session_dir(env), _need(env, "HERDR_ACTIVE_WORKSPACE_ID"),
-                  _need(env, "HERDR_ACTIVE_PANE_CWD"))
+    workspace, cwd = _action_workspace_and_cwd(env)
+    write_capture(session_dir(env), workspace, cwd)
     herdr = env.get("HERDR_BIN_PATH") or DEFAULT_HERDR
     run([herdr, "plugin", "pane", "open", "--plugin", PLUGIN_ID, "--entrypoint", "picker"],
         check=True)

@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -45,6 +46,22 @@ def test_open_picker_writes_the_capture_and_opens_the_overlay(home):
     assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-ticket",
                     "--entrypoint", "picker"]
     assert kw == {"check": True}
+
+
+def test_open_picker_reads_the_plugin_action_environment(home):
+    # Plugin actions get HERDR_WORKSPACE_ID and HERDR_PLUGIN_CONTEXT_JSON, not HERDR_ACTIVE_*
+    # (plugins.mdx, v0.9.1). Found when prefix+c ran the action in ticket-test.
+    context = json.dumps({"workspace_id": "w9", "workspace_cwd": "/ws",
+                          "focused_pane_cwd": "/focus"})
+    env = {**_env(home), "HERDR_WORKSPACE_ID": "w9", "HERDR_PLUGIN_CONTEXT_JSON": context,
+           "HERDR_BIN_PATH": "/bin/herdr-x"}
+    calls = []
+    cli.cmd_open_picker(env, run=lambda argv, **kw: calls.append((argv, kw)))
+
+    capture = read_capture(ticket_home() / "ticket-test")
+    assert capture.workspace_id == "w9"
+    assert capture.cwd == "/focus"
+    assert len(calls) == 1
 
 
 def test_open_picker_without_the_plugin_env_is_a_clear_error(home):
