@@ -1,0 +1,8 @@
+{
+  "dry_run": true,
+  "namespace": "jira",
+  "verb": "create",
+  "project": "SDO",
+  "assignee": "<redacted-account-id>",
+  "summary": "herdr-ticket dry run"
+}
