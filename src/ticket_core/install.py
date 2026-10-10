@@ -1,4 +1,4 @@
-"""`herdr-plugin-jira-bar install` (D22): add the `$ticket` row to the agent layout. Never writes `[keys]`."""
+"""`herdr-plugin-atlas-cli install` (D22): add the `$ticket` row to the agent layout. Never writes `[keys]`."""
 
 import tomllib
 from datetime import datetime
@@ -20,7 +20,7 @@ new_tab = "<free chord>"
 [[keys.command]]
 key = "prefix+c"
 type = "plugin_action"
-command = "herdr-plugin-jira-bar.new-ticket-tab"
+command = "herdr-plugin-atlas-cli.new-ticket-tab"
 description = "new ticket tab"
 """
 

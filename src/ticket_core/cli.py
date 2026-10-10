@@ -1,4 +1,4 @@
-"""Plugin entry point. bin/herdr-plugin-jira-bar runs `python3 -m ticket_core.cli <command>`."""
+"""Plugin entry point. bin/herdr-plugin-atlas-cli runs `python3 -m ticket_core.cli <command>`."""
 
 import argparse
 import json
@@ -19,7 +19,7 @@ from ticket_core.status_menu import (
 from ticket_core.sync import snapshot_with_retry, sync_tokens
 from ticket_core.transactions import Refused, apply_site_change
 
-PLUGIN_ID = "herdr-plugin-jira-bar"
+PLUGIN_ID = "herdr-plugin-atlas-cli"
 
 
 class CliError(Exception):
@@ -50,7 +50,7 @@ def cmd_startup(env, herdr=None) -> None:
     try:
         apply_site_change(store, herdr, config.site)
     except Busy:
-        print("herdr-plugin-jira-bar: picker holds the state lock; site check skipped", file=sys.stderr)
+        print("herdr-plugin-atlas-cli: picker holds the state lock; site check skipped", file=sys.stderr)
     sync_tokens(herdr, **_status_sync_args(env, config.site))
 
 
@@ -156,7 +156,7 @@ def cmd_install(env, emit=print) -> None:
 
 
 def main(argv=None, env=None) -> int:
-    parser = argparse.ArgumentParser(prog="herdr-plugin-jira-bar")
+    parser = argparse.ArgumentParser(prog="herdr-plugin-atlas-cli")
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("startup", "reconcile", "open-picker", "picker", "install", "open-status", "status"):
         sub.add_parser(name)
@@ -178,7 +178,7 @@ def main(argv=None, env=None) -> int:
         elif args.command == "status":
             return cmd_status(env)
     except (CliError, ConfigError, InstallError, HerdrError, AtlasError, Busy, Refused) as e:
-        print(f"herdr-plugin-jira-bar: {e}", file=sys.stderr)
+        print(f"herdr-plugin-atlas-cli: {e}", file=sys.stderr)
         return 1
     return 0
 
