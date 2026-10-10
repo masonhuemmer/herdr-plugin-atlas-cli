@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from ticket_core.recovery import Issue, Prompt, ResumeAt, plan_recovery
-from ticket_core.reconcile import Tab
+from ticket_core.reconcile import Tab, reconcile
 from ticket_core.state import Pending
 
 
@@ -150,10 +150,19 @@ def test_tab_call_crash_adopts_the_single_match_without_asking(store):
     [(tab_id, tab)] = _bound(herdr, "SDO-9")
 
     assert recover(store, herdr, jira, site="acme") is None
-    assert ("tab_get", tab_id) in herdr.calls
-    assert herdr.tokens == {tab["root"]: "SDO-9"}
+    # Adoption has no root pane (herdr `tab get` omits it, D25): no token is reported
+    # here, and reconcile reports it on every pane of the bound tab.
+    assert not any(c[0] == "tab_get" for c in herdr.calls)
+    assert herdr.tokens == {}
     assert len(herdr.tabs) == 1
     assert store.read().pending is None
+    for change in reconcile(herdr.snapshot()):
+        if change.value is None:
+            herdr.clear_token(change.pane_id)
+        else:
+            herdr.report_token(change.pane_id, change.value)
+    assert herdr.tokens == {tab["root"]: "SDO-9"}
+    assert tab_id in herdr.tabs
 
 
 def test_tab_created_crash_reports_token_and_clears(store):

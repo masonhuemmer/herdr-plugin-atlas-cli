@@ -43,8 +43,6 @@ class HerdrLike(Protocol):
 
     def tab_create(self, workspace_id: str, cwd: str, label: str | None = None) -> tuple[str, str]: ...
 
-    def tab_get(self, tab_id: str) -> str: ...
-
     def tab_rename(self, tab_id: str, label: str) -> None: ...
 
     def report_token(self, pane_id: str, key: str) -> None: ...
@@ -69,7 +67,9 @@ def _finish_tab(store, herdr, site, pending, checkpoint):
     pending = replace(pending, stage="tab_created")
     _write(store, site, pending)
     checkpoint("tab_created")
-    herdr.report_token(pending.root_pane_id, pending.key)
+    if pending.root_pane_id is not None:
+        herdr.report_token(pending.root_pane_id, pending.key)
+    # An adopted tab has no root pane (D25); reconcile reports its token instead.
     _write(store, site, None)  # clears pending and records the site
 
 
@@ -177,9 +177,7 @@ def _resume(store, herdr, site, pending, decision, checkpoint):
     if decision.step == "tab":
         _make_tab(store, herdr, site, pending, checkpoint)
     elif decision.step == "adopt":
-        root = herdr.tab_get(decision.tab_id)
-        _finish_tab(store, herdr, site,
-                    replace(pending, tab_id=decision.tab_id, root_pane_id=root), checkpoint)
+        _finish_tab(store, herdr, site, replace(pending, tab_id=decision.tab_id), checkpoint)
     else:  # "report"
         _finish_tab(store, herdr, site, pending, checkpoint)
 
@@ -191,9 +189,7 @@ def _apply_choice(store, herdr, site, pending, choice, checkpoint):
     elif kind == "confirm" and pending.stage == "creating":
         _after_jira(store, herdr, site, replace(pending, key=choice[1]), checkpoint)
     elif kind == "adopt" and pending.stage == "tab_creating":
-        root = herdr.tab_get(choice[1])
-        _finish_tab(store, herdr, site,
-                    replace(pending, tab_id=choice[1], root_pane_id=root), checkpoint)
+        _finish_tab(store, herdr, site, replace(pending, tab_id=choice[1]), checkpoint)
     elif kind == "new_tab" and pending.stage == "tab_creating":
         _make_tab(store, herdr, site, pending, checkpoint)
     else:

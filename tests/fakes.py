@@ -82,10 +82,6 @@ class FakeHerdr:
         self.calls.append(("tab_create", workspace_id, cwd, label))
         return self.add_tab(label or "", workspace_id)
 
-    def tab_get(self, tab_id):
-        self.calls.append(("tab_get", tab_id))
-        return self.tabs[tab_id]["root"]
-
     def tab_rename(self, tab_id, label):
         self.calls.append(("tab_rename", tab_id, label))
         self.tabs[tab_id]["label"] = label
