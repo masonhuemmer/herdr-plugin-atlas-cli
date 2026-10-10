@@ -111,7 +111,7 @@ def test_install_refuses_without_plugin_config_and_writes_nothing(home):
 def test_install_writes_the_row_and_prints_the_keys_hint(home, capsys):
     _write_config(home)
     assert cli.main(["install"], env=_env(home)) == 0
-    assert '["$ticket"]' in herdr_config_path().read_text()
+    assert "$ticket_title" in herdr_config_path().read_text()
     out = capsys.readouterr().out
     assert 'command = "herdr-ticket.new-ticket-tab"' in out
     assert "[[keys.command]]" in out
@@ -132,4 +132,4 @@ def test_wrapper_runs_install_end_to_end_under_a_temp_home(home):
     proc = subprocess.run(["sh", "bin/herdr-ticket", "install"], cwd=ROOT, env=env,
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
-    assert '["$ticket"]' in herdr_config_path().read_text()
+    assert "$ticket_title" in herdr_config_path().read_text()

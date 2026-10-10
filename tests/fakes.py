@@ -59,6 +59,7 @@ class FakeHerdr:
         self.tabs: dict[str, dict] = {}  # tab_id -> {label, workspace_id, root}
         self.panes: dict[str, str] = {}  # pane_id -> tab_id
         self.tokens: dict[str, str] = {}  # pane_id -> key
+        self.titles: dict[str, str | None] = {}  # pane_id -> title
         self.calls = [] if log is None else log  # shared call log, in order
         self._n = 0
 
@@ -86,10 +87,12 @@ class FakeHerdr:
         self.calls.append(("tab_rename", tab_id, label))
         self.tabs[tab_id]["label"] = label
 
-    def report_token(self, pane_id, key):
+    def report_token(self, pane_id, key, title=None):
         self.calls.append(("report_token", pane_id, key))
+        self.titles[pane_id] = title
         self.tokens[pane_id] = key
 
     def clear_token(self, pane_id):
         self.calls.append(("clear_token", pane_id))
         self.tokens.pop(pane_id, None)
+        self.titles.pop(pane_id, None)

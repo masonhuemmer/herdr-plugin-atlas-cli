@@ -25,10 +25,14 @@ class Snapshot:
     panes: list[Pane]
 
 
+TITLE_CAP = 80  # Herdr caps token values at 80 characters (research Q2)
+
+
 @dataclass(frozen=True)
 class TokenChange:
     pane_id: str
     value: str | None
+    title: str | None = None
 
 
 def reconcile(snapshot: Snapshot) -> list[TokenChange]:
@@ -37,5 +41,8 @@ def reconcile(snapshot: Snapshot) -> list[TokenChange]:
     changes = []
     for pane in sorted(snapshot.panes, key=lambda p: p.pane_id):
         binding = parse_marker(labels.get(pane.tab_id, ""))
-        changes.append(TokenChange(pane.pane_id, binding.key if binding else None))
+        if binding:
+            changes.append(TokenChange(pane.pane_id, binding.key, binding.title[:TITLE_CAP]))
+        else:
+            changes.append(TokenChange(pane.pane_id, None))
     return changes

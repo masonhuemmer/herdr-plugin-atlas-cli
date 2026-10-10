@@ -10,7 +10,7 @@ def test_panes_in_bound_tab_get_key():
         [Tab("t1", "ticket:v1 SDO-1 · Login")],
         [Pane("p1", "t1")],
     )
-    assert reconcile(snap) == [TokenChange("p1", "SDO-1")]
+    assert reconcile(snap) == [TokenChange("p1", "SDO-1", "Login")]
 
 
 def test_both_panes_of_a_split_bound_tab_get_key():
@@ -18,7 +18,7 @@ def test_both_panes_of_a_split_bound_tab_get_key():
         [Tab("t1", "ticket:v1 SDO-1 · Login")],
         [Pane("p1", "t1"), Pane("p2", "t1")],
     )
-    assert reconcile(snap) == [TokenChange("p1", "SDO-1"), TokenChange("p2", "SDO-1")]
+    assert reconcile(snap) == [TokenChange("p1", "SDO-1", "Login"), TokenChange("p2", "SDO-1", "Login")]
 
 
 def test_unbound_and_plain_named_tabs_get_none():
@@ -42,3 +42,10 @@ def test_reconcile_is_repeatable():
     first = reconcile(snap)
     assert first == reconcile(snap)
     assert [c.pane_id for c in first] == ["p1", "p2"]
+
+
+def test_title_is_capped_at_80_characters_for_the_token():
+    long_title = "x" * 120
+    snap = _snap([Tab("t1", f"ticket:v1 SDO-1 · {long_title}")], [Pane("p1", "t1")])
+    [change] = reconcile(snap)
+    assert change.title == "x" * 80

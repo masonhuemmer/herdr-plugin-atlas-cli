@@ -9,6 +9,7 @@ from ticket_core.reconcile import Pane, Snapshot, Tab
 DEFAULT_HERDR = "/Users/mason/.local/bin/herdr"
 SOURCE = "herdr-ticket"
 TOKEN = "ticket"
+TITLE_TOKEN = "ticket_title"
 
 
 class HerdrError(Exception):
@@ -46,10 +47,12 @@ class HerdrAdapter:
     def tab_rename(self, tab_id, label) -> None:
         self._run(["tab", "rename", tab_id, label])
 
-    def report_token(self, pane_id, key) -> None:
-        self._run(["pane", "report-metadata", pane_id, "--source", SOURCE,
-                    "--token", f"{TOKEN}={key}"])
+    def report_token(self, pane_id, key, title=None) -> None:
+        args = ["pane", "report-metadata", pane_id, "--source", SOURCE, "--token", f"{TOKEN}={key}"]
+        if title:
+            args += ["--token", f"{TITLE_TOKEN}={title}"]
+        self._run(args)
 
     def clear_token(self, pane_id) -> None:
         self._run(["pane", "report-metadata", pane_id, "--source", SOURCE,
-                    "--clear-token", TOKEN])
+                    "--clear-token", TOKEN, "--clear-token", TITLE_TOKEN])

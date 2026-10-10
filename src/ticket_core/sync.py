@@ -32,7 +32,7 @@ def apply_tokens(herdr, snap: Snapshot) -> None:
         if change.value is None:
             herdr.clear_token(change.pane_id)
         else:
-            herdr.report_token(change.pane_id, change.value)
+            herdr.report_token(change.pane_id, change.value, change.title)
 
 
 def sync_tokens(herdr, *, sleep=time.sleep) -> None:
