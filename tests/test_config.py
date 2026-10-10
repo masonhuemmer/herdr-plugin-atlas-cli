@@ -31,3 +31,25 @@ def test_session_name_comes_from_the_socket_path():
 def test_ticket_home_follows_home(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
     assert ticket_home() == tmp_path / ".config" / "herdr-ticket"
+
+
+def test_statuses_default_when_the_key_is_absent(tmp_path):
+    path = tmp_path / "config.toml"
+    path.write_text('site = "acme"\nproject = "SDO"\nissue_type = "Task"\nassignee = "acc-1"\n')
+    assert load_config(path).statuses == ("To Do", "In Progress", "Done")
+
+
+def test_statuses_override_the_default(tmp_path):
+    path = tmp_path / "config.toml"
+    path.write_text('site = "acme"\nproject = "SDO"\nissue_type = "Task"\nassignee = "acc-1"\n'
+                    'statuses = ["Backlog", "Review"]\n')
+    assert load_config(path).statuses == ("Backlog", "Review")
+
+
+@pytest.mark.parametrize("value", ['"Done"', "[]", "[1]"])
+def test_statuses_must_be_a_non_empty_list_of_names(tmp_path, value):
+    path = tmp_path / "config.toml"
+    path.write_text('site = "acme"\nproject = "SDO"\nissue_type = "Task"\nassignee = "acc-1"\n'
+                    f"statuses = {value}\n")
+    with pytest.raises(ConfigError, match="statuses"):
+        load_config(path)

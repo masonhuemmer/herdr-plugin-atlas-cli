@@ -11,6 +11,7 @@ from fakes import FakeHerdr, FakeJira
 from ticket_core import cli
 from ticket_core.config import herdr_config_path, ticket_home
 from ticket_core.picker import read_capture
+from ticket_core.status_menu import read_status_capture, write_status_capture
 from ticket_core.state import State, StateStore
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -134,3 +135,56 @@ def test_wrapper_runs_install_end_to_end_under_a_temp_home(home):
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert "$ticket_status" in herdr_config_path().read_text()
+
+
+def test_open_status_writes_the_pane_capture_and_opens_the_status_overlay(home):
+    context = json.dumps({"focused_pane_id": "p3", "focused_pane_cwd": "/work", "workspace_id": "w1"})
+    env = {**_env(home), "HERDR_PLUGIN_CONTEXT_JSON": context, "HERDR_BIN_PATH": "/bin/herdr-x"}
+    calls = []
+    cli.cmd_open_status(env, run=lambda argv, **kw: calls.append((argv, kw)))
+
+    assert read_status_capture(ticket_home() / "ticket-test") == "p3"
+    [(argv, kw)] = calls
+    assert argv == ["/bin/herdr-x", "plugin", "pane", "open", "--plugin", "herdr-ticket",
+                    "--entrypoint", "status"]
+    assert kw == {"check": True}
+
+
+def test_open_status_without_a_focused_pane_is_a_clear_error(home):
+    assert cli.main(["open-status"], env=_env(home)) == 1
+
+
+class NoJira:
+    def __getattr__(self, name):
+        raise AssertionError(f"Jira must not be called: {name}")
+
+
+def test_status_on_an_unbound_tab_shows_the_message_and_never_calls_jira(home):
+    _write_config(home)
+    herdr = FakeHerdr()
+    _, root = herdr.add_tab("Scratch", "w1")
+    write_status_capture(ticket_home() / "ticket-test", root)
+    shown = []
+    rc = cli.cmd_status(_env(home), herdr=herdr, jira=NoJira(),
+                        run_ui=lambda key, choices, choose: shown.append((key, choices)) or 0)
+    assert rc == 0
+    assert shown == [(None, [])]
+
+
+def test_status_on_a_bound_tab_offers_the_statuses_and_a_choice_transitions_and_refreshes(home):
+    _write_config(home)
+    herdr = FakeHerdr()
+    _, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
+    write_status_capture(ticket_home() / "ticket-test", root)
+    jira = FakeJira()
+    seen = {}
+
+    def fake_ui(key, choices, choose):
+        seen.update(key=key, choices=choices)
+        choose("Done")
+        return 0
+
+    assert cli.cmd_status(_env(home), herdr=herdr, jira=jira, run_ui=fake_ui) == 0
+    assert seen == {"key": "SDO-5", "choices": ["To Do", "In Progress", "Done"]}
+    assert jira.transitions == [("SDO-5", "Done")]
+    assert herdr.tokens == {root: "SDO-5"}

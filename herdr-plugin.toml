@@ -14,6 +14,11 @@ title = "New ticket tab"
 command = ["sh", "bin/herdr-ticket", "open-picker"]
 
 [[actions]]
+id = "set-status"
+title = "Set ticket status"
+command = ["sh", "bin/herdr-ticket", "open-status"]
+
+[[actions]]
 id = "reconcile"
 title = "Reconcile ticket rows"
 command = ["sh", "bin/herdr-ticket", "reconcile"]
@@ -23,6 +28,12 @@ id = "picker"
 title = "Ticket picker"
 placement = "overlay"
 command = ["sh", "bin/herdr-ticket", "picker"]
+
+[[panes]]
+id = "status"
+title = "Ticket status"
+placement = "overlay"
+command = ["sh", "bin/herdr-ticket", "status"]
 
 [[events]]
 on = "pane.created"

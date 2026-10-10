@@ -13,6 +13,9 @@ from ticket_core.config import ConfigError, herdr_config_path, load_config, sess
 from ticket_core.install import KEYS_HINT, InstallError, install
 from ticket_core.picker import Picker, crash_checkpoint, read_capture, write_capture
 from ticket_core.state import Busy, StateStore
+from ticket_core.status_menu import (
+    apply_status, bound_binding, read_status_capture, write_status_capture,
+)
 from ticket_core.sync import snapshot_with_retry, sync_tokens
 from ticket_core.transactions import Refused, apply_site_change
 
@@ -92,6 +95,40 @@ def cmd_open_picker(env, run=subprocess.run) -> None:
         check=True)
 
 
+def cmd_open_status(env, run=subprocess.run) -> None:
+    context = _plugin_context(env)
+    pane_id = context.get("focused_pane_id")
+    if not pane_id:
+        raise CliError("no focused pane in the plugin action environment; run this from a Herdr plugin action")
+    write_status_capture(session_dir(env), pane_id)
+    herdr = env.get("HERDR_BIN_PATH") or DEFAULT_HERDR
+    run([herdr, "plugin", "pane", "open", "--plugin", PLUGIN_ID, "--entrypoint", "status"],
+        check=True)
+
+
+def cmd_status(env, herdr=None, jira=None, run_ui=None) -> int:
+    from ticket_core.status_ui import run  # imports curses; kept off the other commands
+
+    directory = session_dir(env)
+    try:
+        pane_id = read_status_capture(directory)
+    except FileNotFoundError:
+        raise CliError("no capture from the plugin action; open the status menu from a bound tab") from None
+    herdr = herdr or HerdrAdapter()
+    binding = bound_binding(herdr.snapshot(), pane_id)
+    show = run_ui or run
+    if binding is None:
+        return show(None, [], None)  # no Jira call for an unbound tab
+    config = _config()
+    jira = jira or AtlasJira()
+
+    def choose(status: str) -> None:
+        apply_status(binding.key, status, jira=jira, herdr=herdr, site=config.site,
+                     cache_path=directory / "statuses.json")
+
+    return show(binding.key, list(config.statuses), choose)
+
+
 def cmd_picker(env, herdr=None, jira=None) -> int:
     from ticket_core.ui import run  # imports curses; kept off the other commands
 
@@ -121,7 +158,7 @@ def cmd_install(env, emit=print) -> None:
 def main(argv=None, env=None) -> int:
     parser = argparse.ArgumentParser(prog="herdr-ticket")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("startup", "reconcile", "open-picker", "picker", "install"):
+    for name in ("startup", "reconcile", "open-picker", "picker", "install", "open-status", "status"):
         sub.add_parser(name)
     args = parser.parse_args(argv)
     env = dict(os.environ) if env is None else env
@@ -136,6 +173,10 @@ def main(argv=None, env=None) -> int:
             return cmd_picker(env)
         elif args.command == "install":
             cmd_install(env)
+        elif args.command == "open-status":
+            cmd_open_status(env)
+        elif args.command == "status":
+            return cmd_status(env)
     except (CliError, ConfigError, InstallError, HerdrError, AtlasError, Busy, Refused) as e:
         print(f"herdr-ticket: {e}", file=sys.stderr)
         return 1

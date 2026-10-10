@@ -15,6 +15,15 @@ BACKSPACE = (curses.KEY_BACKSPACE, 127, 8)
 ESC = 27
 
 
+def step(sel: int, ch: int, count: int) -> int:
+    """Move a list selection one row up or down, clamped to the `count` rows."""
+    if ch == curses.KEY_UP:
+        return max(0, sel - 1)
+    if ch == curses.KEY_DOWN:
+        return min(max(0, count - 1), sel + 1)
+    return sel
+
+
 def run(picker) -> int:
     return curses.wrapper(lambda scr: _Ui(scr, picker).main())
 
@@ -107,10 +116,8 @@ class _Ui:
     def _key_lookup(self, ch):
         if ch == ESC:
             self.mode = "menu"
-        elif ch == curses.KEY_UP:
-            self.sel = max(0, self.sel - 1)
-        elif ch == curses.KEY_DOWN:
-            self.sel = min(max(0, len(self.lookup.results or []) - 1), self.sel + 1)
+        elif ch in (curses.KEY_UP, curses.KEY_DOWN):
+            self.sel = step(self.sel, ch, len(self.lookup.results or []))
         elif ch in ENTER:
             results = self.lookup.results or []
             if results and self.lookup.text.strip():

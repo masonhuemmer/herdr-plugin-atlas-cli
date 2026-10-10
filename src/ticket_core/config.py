@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REQUIRED = ("site", "project", "issue_type", "assignee")
+DEFAULT_STATUSES = ("To Do", "In Progress", "Done")
 
 
 class ConfigError(Exception):
@@ -17,6 +18,7 @@ class Config:
     project: str
     issue_type: str
     assignee: str
+    statuses: tuple[str, ...] = DEFAULT_STATUSES
 
 
 def ticket_home() -> Path:
@@ -37,7 +39,16 @@ def load_config(path: Path) -> Config:
     missing = [k for k in REQUIRED if not raw.get(k)]
     if missing:
         raise ConfigError(f"config at {path} is missing: {', '.join(missing)}")
-    return Config(**{k: str(raw[k]) for k in REQUIRED})
+    return Config(**{k: str(raw[k]) for k in REQUIRED}, statuses=_statuses(raw, path))
+
+
+def _statuses(raw, path) -> tuple[str, ...]:
+    if "statuses" not in raw:
+        return DEFAULT_STATUSES
+    value = raw["statuses"]
+    if not isinstance(value, list) or not value or not all(isinstance(v, str) and v for v in value):
+        raise ConfigError(f"statuses in {path} must be a non-empty list of status names")
+    return tuple(value)
 
 
 def session_name(socket_path: str | None) -> str:
