@@ -58,6 +58,7 @@ class FakeHerdr:
     def __init__(self, log=None):
         self.tabs: dict[str, dict] = {}  # tab_id -> {label, workspace_id, root}
         self.panes: dict[str, str] = {}  # pane_id -> tab_id
+        self.labels: dict[str, str] = {}  # pane_id -> pane label (the binding marker)
         self.tokens: dict[str, str] = {}  # pane_id -> key
         self.statuses: dict[str, str | None] = {}  # pane_id -> status
         self.calls = [] if log is None else log  # shared call log, in order
@@ -67,25 +68,31 @@ class FakeHerdr:
         self._n += 1
         return f"{prefix}{self._n}"
 
-    def add_tab(self, label: str, workspace_id: str) -> tuple[str, str]:
+    def add_tab(self, label: str, workspace_id: str, pane_label: str = "") -> tuple[str, str]:
         tab_id, pane_id = self._new_id("t"), self._new_id("p")
         self.tabs[tab_id] = {"label": label, "workspace_id": workspace_id, "root": pane_id}
         self.panes[pane_id] = tab_id
+        if pane_label:
+            self.labels[pane_id] = pane_label
         return tab_id, pane_id
 
     def snapshot(self) -> Snapshot:
         return Snapshot(
             tabs=[Tab(t, v["label"], v["workspace_id"]) for t, v in self.tabs.items()],
-            panes=[Pane(p, t) for p, t in self.panes.items()],
+            panes=[Pane(p, t, self.labels.get(p, "")) for p, t in self.panes.items()],
         )
 
     def tab_create(self, workspace_id, cwd, label=None):
         self.calls.append(("tab_create", workspace_id, cwd, label))
         return self.add_tab(label or "", workspace_id)
 
-    def tab_rename(self, tab_id, label):
-        self.calls.append(("tab_rename", tab_id, label))
-        self.tabs[tab_id]["label"] = label
+    def pane_rename(self, pane_id, label):
+        self.calls.append(("pane_rename", pane_id, label))
+        self.labels[pane_id] = label
+
+    def clear_label(self, pane_id):
+        self.calls.append(("clear_label", pane_id))
+        self.labels.pop(pane_id, None)
 
     def report_token(self, pane_id, key, status=None):
         self.calls.append(("report_token", pane_id, key))

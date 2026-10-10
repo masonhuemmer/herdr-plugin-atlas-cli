@@ -43,11 +43,13 @@ class HerdrLike(Protocol):
 
     def tab_create(self, workspace_id: str, cwd: str, label: str | None = None) -> tuple[str, str]: ...
 
-    def tab_rename(self, tab_id: str, label: str) -> None: ...
+    def pane_rename(self, pane_id: str, label: str) -> None: ...
 
     def report_token(self, pane_id: str, key: str) -> None: ...
 
     def clear_token(self, pane_id: str) -> None: ...
+
+    def clear_label(self, pane_id: str) -> None: ...
 
 
 def _write(store: StateStore, site: str | None, pending: Pending | None) -> None:
@@ -58,9 +60,19 @@ def _make_tab(store, herdr, site, pending, checkpoint):
     pending = replace(pending, stage="tab_creating")
     _write(store, site, pending)
     checkpoint("tab_creating")
-    tab_id, root = herdr.tab_create(pending.workspace_id, pending.cwd, label=pending.tab_label)
+    # The tab shows the plain title; the binding marker goes on its root pane.
+    title = parse_marker(pending.tab_label).title
+    tab_id, root = herdr.tab_create(pending.workspace_id, pending.cwd, label=title)
     checkpoint("tab_call")
+    herdr.pane_rename(root, pending.tab_label)
     _finish_tab(store, herdr, site, replace(pending, tab_id=tab_id, root_pane_id=root), checkpoint)
+
+
+def _adopt(store, herdr, site, pending, tab_id, snap, checkpoint):
+    # Bind the adopted tab by labelling its lowest pane id (the tab has no root pane we know).
+    pane_id = min(p.pane_id for p in snap.panes if p.tab_id == tab_id)
+    herdr.pane_rename(pane_id, pending.tab_label)
+    _finish_tab(store, herdr, site, replace(pending, tab_id=tab_id), checkpoint)
 
 
 def _finish_tab(store, herdr, site, pending, checkpoint):
@@ -159,37 +171,33 @@ def apply_site_change(store: StateStore, herdr: HerdrLike, site: str) -> None:
             return
         pending = state.pending
         if state.site is not None:
-            # Site change (Decision 8): unbind every marked tab, then drop pending.
-            snap = herdr.snapshot()
-            for tab in snap.tabs:
-                binding = parse_marker(tab.label)
-                if binding is None:
+            # Site change (Decision 8): unbind every bound pane, then drop pending.
+            for pane in herdr.snapshot().panes:
+                if parse_marker(pane.label) is None:
                     continue
-                herdr.tab_rename(tab.tab_id, binding.title)
-                for pane in snap.panes:
-                    if pane.tab_id == tab.tab_id:
-                        herdr.clear_token(pane.pane_id)
+                herdr.clear_label(pane.pane_id)
+                herdr.clear_token(pane.pane_id)
             pending = None
         _write(store, site, pending)
 
 
-def _resume(store, herdr, site, pending, decision, checkpoint):
+def _resume(store, herdr, site, pending, decision, snap, checkpoint):
     if decision.step == "tab":
         _make_tab(store, herdr, site, pending, checkpoint)
     elif decision.step == "adopt":
-        _finish_tab(store, herdr, site, replace(pending, tab_id=decision.tab_id), checkpoint)
+        _adopt(store, herdr, site, pending, decision.tab_id, snap, checkpoint)
     else:  # "report"
         _finish_tab(store, herdr, site, pending, checkpoint)
 
 
-def _apply_choice(store, herdr, site, pending, choice, checkpoint):
+def _apply_choice(store, herdr, site, pending, choice, snap, checkpoint):
     kind = choice[0]
     if kind == "discard":
         _write(store, site, None)
     elif kind == "confirm" and pending.stage == "creating":
         _after_jira(store, herdr, site, replace(pending, key=choice[1]), checkpoint)
     elif kind == "adopt" and pending.stage == "tab_creating":
-        _finish_tab(store, herdr, site, replace(pending, tab_id=choice[1]), checkpoint)
+        _adopt(store, herdr, site, pending, choice[1], snap, checkpoint)
     elif kind == "new_tab" and pending.stage == "tab_creating":
         _make_tab(store, herdr, site, pending, checkpoint)
     else:
@@ -211,16 +219,16 @@ def recover(
         pending = store.read().pending
         if pending is None:
             return None
-        issues, tabs = [], []
+        issues, snap = [], Snapshot(tabs=[], panes=[])
         if pending.stage == "creating":
             issues = jira.search(build_recovery_jql(pending.description, pending.started_at), site)
         elif pending.stage == "tab_creating":
-            tabs = herdr.snapshot().tabs
-        decision = plan_recovery(pending, issues, tabs)
+            snap = herdr.snapshot()
+        decision = plan_recovery(pending, issues, snap)
         if isinstance(decision, ResumeAt):
-            _resume(store, herdr, site, pending, decision, checkpoint)
+            _resume(store, herdr, site, pending, decision, snap, checkpoint)
             return None
         if choice is None:
             return decision
-        _apply_choice(store, herdr, site, pending, choice, checkpoint)
+        _apply_choice(store, herdr, site, pending, choice, snap, checkpoint)
         return None

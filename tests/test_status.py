@@ -20,8 +20,8 @@ class StatusJira:
 
 
 def _snap(*labels):
-    tabs = [Tab(f"t{i}", label) for i, label in enumerate(labels)]
-    panes = [Pane(f"p{i}", f"t{i}") for i in range(len(labels))]
+    tabs = [Tab(f"t{i}", "Title") for i in range(len(labels))]
+    panes = [Pane(f"p{i}", f"t{i}", label) for i, label in enumerate(labels)]
     return Snapshot(tabs=tabs, panes=panes)
 
 
@@ -68,7 +68,7 @@ def test_jira_failure_leaves_the_status_out_and_is_not_cached(tmp_path):
 
 def test_sync_tokens_reports_key_and_status():
     herdr = FakeHerdr()
-    tab, root = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    tab, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     sync_tokens(herdr, jira=StatusJira({"SDO-5": "In Progress"}), site="acme",
                 sleep=lambda s: None, now=lambda: 0.0)
     assert herdr.tokens == {root: "SDO-5"}

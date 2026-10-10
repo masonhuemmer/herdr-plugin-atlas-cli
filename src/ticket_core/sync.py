@@ -1,4 +1,4 @@
-"""Token sync: read the snapshot (bounded retry, D18), fetch statuses (cached), and make each pane's tokens match its tab."""
+"""Token sync: read the snapshot (bounded retry, D18), fetch statuses (cached), and make each pane's tokens match its own label."""
 
 import json
 import time

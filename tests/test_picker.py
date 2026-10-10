@@ -37,7 +37,8 @@ def test_bind_labels_the_tab_and_reports_the_token(parts):
     _, herdr, _, make = parts
     make().bind(Issue("SDO-5", "Fix login"))
     [(tid, tab)] = [(t, v) for t, v in herdr.tabs.items()]
-    assert tab["label"] == "ticket:v1 SDO-5 · Fix login"
+    assert tab["label"] == "Fix login"
+    assert herdr.labels == {tab["root"]: "ticket:v1 SDO-5 · Fix login"}
     assert herdr.tokens == {tab["root"]: "SDO-5"}
 
 
@@ -47,7 +48,8 @@ def test_create_makes_the_ticket_then_the_bound_tab(parts):
     assert jira.creates[0]["summary"] == "Fix login"
     assert jira.creates[0]["site"] == "acme"
     [(tid, tab)] = list(herdr.tabs.items())
-    assert tab["label"] == "ticket:v1 SDO-9 · Fix login"
+    assert tab["label"] == "Fix login"
+    assert herdr.labels == {tab["root"]: "ticket:v1 SDO-9 · Fix login"}
     assert herdr.tokens == {tab["root"]: "SDO-9"}
 
 

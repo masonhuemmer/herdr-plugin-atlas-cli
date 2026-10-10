@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 
-from ticket_core.reconcile import Tab
+from ticket_core.marker import parse_marker
+from ticket_core.reconcile import Snapshot, Tab
 from ticket_core.state import Pending
 
 
@@ -28,15 +29,18 @@ class ResumeAt:
     tab_id: str | None = None
 
 
-def plan_recovery(pending: Pending, candidates: list[Issue], tabs: list[Tab]) -> Prompt | ResumeAt:
+def plan_recovery(pending: Pending, candidates: list[Issue], snap: Snapshot) -> Prompt | ResumeAt:
     if pending.stage == "creating":
         return Prompt(list(candidates), [])
     if pending.stage == "jira_created":
         return ResumeAt("tab")
     if pending.stage == "tab_creating":
-        prefix = f"ticket:v1 {pending.key} · "
+        # The tab is labelled with the plain title; it is ours only if no pane is bound yet.
+        title = parse_marker(pending.tab_label).title
+        bound = {p.tab_id for p in snap.panes if parse_marker(p.label)}
         matches = [
-            t for t in tabs if t.label.startswith(prefix) and t.workspace_id == pending.workspace_id
+            t for t in snap.tabs
+            if t.label == title and t.workspace_id == pending.workspace_id and t.tab_id not in bound
         ]
         if len(matches) == 1:
             return ResumeAt("adopt", matches[0].tab_id)

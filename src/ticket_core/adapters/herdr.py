@@ -33,7 +33,7 @@ class HerdrAdapter:
         snap = json.loads(self._run(["api", "snapshot"]))["result"]["snapshot"]
         return Snapshot(
             tabs=[Tab(t["tab_id"], t["label"], t["workspace_id"]) for t in snap["tabs"]],
-            panes=[Pane(p["pane_id"], p["tab_id"]) for p in snap["panes"]],
+            panes=[Pane(p["pane_id"], p["tab_id"], p.get("label") or "") for p in snap["panes"]],
         )
 
     def tab_create(self, workspace_id, cwd, label=None) -> tuple[str, str]:
@@ -44,8 +44,11 @@ class HerdrAdapter:
         result = json.loads(self._run(args))["result"]
         return result["tab"]["tab_id"], result["root_pane"]["pane_id"]
 
-    def tab_rename(self, tab_id, label) -> None:
-        self._run(["tab", "rename", tab_id, label])
+    def pane_rename(self, pane_id, label) -> None:
+        self._run(["pane", "rename", pane_id, label])
+
+    def clear_label(self, pane_id) -> None:
+        self._run(["pane", "rename", pane_id, "--clear"])
 
     def report_token(self, pane_id, key, status=None) -> None:
         args = ["pane", "report-metadata", pane_id, "--source", SOURCE, "--token", f"{TOKEN}={key}"]

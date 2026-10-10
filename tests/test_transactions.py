@@ -40,7 +40,8 @@ def test_lookup_binds_tab_and_reports_token(store):
     lookup_bind(store, herdr, CAPTURE, "SDO-5", "Fix login", site="acme")
 
     [(tab_id, tab)] = herdr.tabs.items()
-    assert tab["label"] == "ticket:v1 SDO-5 · Fix login"
+    assert tab["label"] == "Fix login"
+    assert herdr.labels == {tab["root"]: "ticket:v1 SDO-5 · Fix login"}
     assert herdr.tokens == {tab["root"]: "SDO-5"}
     assert jira.creates == []
     state = store.read()
@@ -59,8 +60,9 @@ def test_create_runs_steps_in_order_and_clears_pending(store):
         "jira_call",
         "jira_created",
         "tab_creating",
-        ("tab_create", "w1", "/work", "ticket:v1 SDO-9 · Fix login"),
+        ("tab_create", "w1", "/work", "Fix login"),
         "tab_call",
+        ("pane_rename", "p2", "ticket:v1 SDO-9 · Fix login"),
         "tab_created",
         ("report_token", "p2", "SDO-9"),
     ]
@@ -132,6 +134,7 @@ def test_apply_site_change_unbinds_marked_tabs_and_clears_pending(store):
     apply_site_change(store, herdr, "B")
 
     assert tab["label"] == "Fix login"
+    assert herdr.labels == {}
     assert herdr.tokens == {}
     state = store.read()
     assert state.site == "B"

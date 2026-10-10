@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from fake_run import FakeRun, fixture_json, fixture_text
@@ -22,6 +24,19 @@ def test_snapshot_fixture_maps_tabs_and_panes():
     assert len(snap.panes) == len(recorded["panes"])
 
 
+def test_snapshot_reads_pane_labels_and_defaults_to_empty():
+    stdout = {"result": {"snapshot": {
+        "tabs": [{"tab_id": "w1:t1", "label": "Fix login", "workspace_id": "w1"}],
+        "panes": [
+            {"pane_id": "w1:p1", "tab_id": "w1:t1", "label": "ticket:v1 SDO-1 · Fix login"},
+            {"pane_id": "w1:p2", "tab_id": "w1:t1"},
+        ],
+    }}}
+    snap = _herdr(FakeRun(stdout=json.dumps(stdout))).snapshot()
+    assert [(p.pane_id, p.label) for p in snap.panes] == [
+        ("w1:p1", "ticket:v1 SDO-1 · Fix login"), ("w1:p2", "")]
+
+
 def test_snapshot_nonzero_exit_raises():
     with pytest.raises(HerdrError):
         _herdr(FakeRun(stderr="no socket", returncode=1)).snapshot()
@@ -37,9 +52,21 @@ def test_tab_create_argv_focuses_and_omits_label_when_none():
 
 def test_tab_create_argv_includes_label_when_given():
     run = FakeRun(stdout=fixture_text("herdr_tab_create.json"))
-    _herdr(run).tab_create("w8", "/work/repo", label="ticket:v1 SDO-1 · Fix")
+    _herdr(run).tab_create("w8", "/work/repo", label="Fix login")
     assert "--focus" in run.argv[0]
-    assert run.argv[0][run.argv[0].index("--label") + 1] == "ticket:v1 SDO-1 · Fix"
+    assert run.argv[0][run.argv[0].index("--label") + 1] == "Fix login"
+
+
+def test_pane_rename_argv_sets_the_binding_label():
+    run = FakeRun()
+    _herdr(run).pane_rename("w8:p3", "ticket:v1 SDO-1 · Fix login")
+    assert run.argv == [[HERDR, "pane", "rename", "w8:p3", "ticket:v1 SDO-1 · Fix login"]]
+
+
+def test_clear_label_argv_uses_the_clear_flag():
+    run = FakeRun()
+    _herdr(run).clear_label("w8:p3")
+    assert run.argv == [[HERDR, "pane", "rename", "w8:p3", "--clear"]]
 
 
 def test_report_token_argv():

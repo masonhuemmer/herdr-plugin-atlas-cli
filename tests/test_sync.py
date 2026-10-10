@@ -58,7 +58,7 @@ def test_retry_raises_when_every_attempt_fails():
 
 def test_sync_sets_tokens_for_bound_tabs_and_clears_the_rest():
     herdr = FakeHerdr()
-    bound, root_b = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    bound, root_b = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     plain, root_p = herdr.add_tab("plain", "w1")
     herdr.tokens[root_p] = "SDO-1"  # stale token from an earlier binding
     sync_tokens(herdr, sleep=lambda s: None)
@@ -67,8 +67,8 @@ def test_sync_sets_tokens_for_bound_tabs_and_clears_the_rest():
 
 def test_sync_clears_the_token_after_a_rename():
     herdr = FakeHerdr()
-    tab, root = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    tab, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     sync_tokens(herdr, sleep=lambda s: None)
-    herdr.tab_rename(tab, "renamed")
+    herdr.pane_rename(root, "renamed")
     sync_tokens(herdr, sleep=lambda s: None)
     assert herdr.tokens == {}

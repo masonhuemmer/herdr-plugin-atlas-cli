@@ -71,7 +71,7 @@ def test_open_picker_without_the_plugin_env_is_a_clear_error(home):
 def test_startup_records_the_site_and_syncs_tokens(home):
     _write_config(home)
     herdr = FakeHerdr()
-    tab, root = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    tab, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     cli.cmd_startup(_env(home), herdr=herdr)
     assert herdr.tokens == {root: "SDO-5"}
     assert StateStore(ticket_home() / "ticket-test" / "state.json").read().site == "acme"
@@ -84,9 +84,10 @@ def test_startup_with_a_changed_site_unbinds_then_syncs(home):
     store = StateStore(state_dir / "state.json")
     store.write(State(site="old", pending=None))
     herdr = FakeHerdr()
-    tab, root = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    tab, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     cli.cmd_startup(_env(home), herdr=herdr)
     assert herdr.tabs[tab]["label"] == "Fix login"
+    assert herdr.labels == {}
     assert herdr.tokens == {}
     assert store.read().site == "acme"
 
@@ -98,7 +99,7 @@ def test_startup_without_config_fails_before_touching_state(home):
 
 def test_reconcile_needs_no_config(home):
     herdr = FakeHerdr()
-    tab, root = herdr.add_tab("ticket:v1 SDO-5 · Fix login", "w1")
+    tab, root = herdr.add_tab("Fix login", "w1", pane_label="ticket:v1 SDO-5 · Fix login")
     cli.cmd_reconcile(_env(home), herdr=herdr)
     assert herdr.tokens == {root: "SDO-5"}
 

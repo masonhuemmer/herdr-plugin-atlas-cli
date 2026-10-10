@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from ticket_core.recovery import Issue, Prompt, ResumeAt, plan_recovery
-from ticket_core.reconcile import Tab, reconcile
+from ticket_core.reconcile import Pane, Snapshot, Tab, reconcile
 from ticket_core.state import Pending
 
 
@@ -33,32 +33,53 @@ def test_tab_created_resumes_at_report():
     assert plan_recovery(_pending("tab_created"), [], []) == ResumeAt("report")
 
 
-def test_tab_creating_adopts_the_single_match_in_the_workspace():
-    tabs = [Tab("t1", "ticket:v1 SDO-9 · Fix login", workspace_id="w1")]
-    assert plan_recovery(_pending("tab_creating"), [], tabs) == ResumeAt("adopt", "t1")
+def _snap(tabs=(), panes=()):
+    return Snapshot(tabs=list(tabs), panes=list(panes))
+
+
+def test_tab_creating_adopts_the_single_unbound_match_in_the_workspace():
+    snap = _snap([Tab("t1", "Fix login", workspace_id="w1")], [Pane("p1", "t1")])
+    assert plan_recovery(_pending("tab_creating"), [], snap) == ResumeAt("adopt", "t1")
 
 
 def test_tab_creating_asks_when_no_tab_matches():
-    assert plan_recovery(_pending("tab_creating"), [], []) == Prompt([], [])
+    assert plan_recovery(_pending("tab_creating"), [], _snap()) == Prompt([], [])
 
 
 def test_tab_creating_asks_when_several_tabs_match():
     tabs = [
-        Tab("t1", "ticket:v1 SDO-9 · Fix login", workspace_id="w1"),
-        Tab("t2", "ticket:v1 SDO-9 · Fix login", workspace_id="w1"),
+        Tab("t1", "Fix login", workspace_id="w1"),
+        Tab("t2", "Fix login", workspace_id="w1"),
     ]
-    assert plan_recovery(_pending("tab_creating"), [], tabs) == Prompt([], tabs)
+    snap = _snap(tabs, [Pane("p1", "t1"), Pane("p2", "t2")])
+    assert plan_recovery(_pending("tab_creating"), [], snap) == Prompt([], tabs)
 
 
 def test_tab_in_another_workspace_is_not_adopted():
-    tabs = [Tab("t1", "ticket:v1 SDO-9 · Fix login", workspace_id="w2")]
-    assert plan_recovery(_pending("tab_creating"), [], tabs) == Prompt([], [])
+    snap = _snap([Tab("t1", "Fix login", workspace_id="w2")], [Pane("p1", "t1")])
+    assert plan_recovery(_pending("tab_creating"), [], snap) == Prompt([], [])
+
+
+def test_tab_with_a_bound_pane_is_not_adopted():
+    snap = _snap(
+        [Tab("t1", "Fix login", workspace_id="w1")],
+        [Pane("p1", "t1", "ticket:v1 SDO-9 · Fix login")],
+    )
+    assert plan_recovery(_pending("tab_creating"), [], snap) == Prompt([], [])
+
+
+def test_old_marker_tab_label_is_not_adopted():
+    snap = _snap(
+        [Tab("t1", "ticket:v1 SDO-9 · Fix login", workspace_id="w1")],
+        [Pane("p1", "t1")],
+    )
+    assert plan_recovery(_pending("tab_creating"), [], snap) == Prompt([], [])
 
 
 def test_plan_never_returns_a_create_step():
-    tabs = [Tab("t1", "ticket:v1 SDO-9 · Fix login", workspace_id="w1")]
+    snap = _snap([Tab("t1", "Fix login", workspace_id="w1")], [Pane("p1", "t1")])
     for stage in ["creating", "jira_created", "tab_creating", "tab_created"]:
-        decision = plan_recovery(_pending(stage), [], tabs)
+        decision = plan_recovery(_pending(stage), [], snap)
         if isinstance(decision, ResumeAt):
             assert decision.step in {"tab", "adopt", "report"}
 
@@ -89,10 +110,13 @@ def _create_crashing_at(store, herdr, jira, at):
 
 
 def _bound(herdr, key):
-    """(tab_id, tab) for every tab labelled with this key."""
+    """(tab_id, tab) for every tab with a pane labelled with this key's marker."""
     return [
         (tid, t) for tid, t in herdr.tabs.items()
-        if t["label"].startswith(f"ticket:v1 {key} · ")
+        if any(
+            herdr.labels.get(p, "").startswith(f"ticket:v1 {key} · ")
+            for p, owner in herdr.panes.items() if owner == tid
+        )
     ]
 
 
@@ -147,13 +171,15 @@ def test_tab_creating_crash_offers_new_tab_when_none_matches(store):
 def test_tab_call_crash_adopts_the_single_match_without_asking(store):
     herdr, jira = FakeHerdr(), FakeJira(keys=["SDO-9"])
     _create_crashing_at(store, herdr, jira, "tab_call")
-    [(tab_id, tab)] = _bound(herdr, "SDO-9")
+    [(tab_id, tab)] = [(t, v) for t, v in herdr.tabs.items() if v["label"] == "Fix login"]
+    assert herdr.labels == {}  # the crash came before the pane was labelled
 
     assert recover(store, herdr, jira, site="acme") is None
-    # Adoption has no root pane (herdr `tab get` omits it, D25): no token is reported
-    # here, and reconcile reports it on every pane of the bound tab.
+    # Adoption labels the tab's pane (lowest pane id) but reports no token (D25);
+    # reconcile reports it from the pane label.
     assert not any(c[0] == "tab_get" for c in herdr.calls)
     assert herdr.tokens == {}
+    assert herdr.labels == {tab["root"]: "ticket:v1 SDO-9 · Fix login"}
     assert len(herdr.tabs) == 1
     assert store.read().pending is None
     for change in reconcile(herdr.snapshot()):
@@ -179,9 +205,9 @@ def test_tab_created_crash_reports_token_and_clears(store):
 def test_several_matches_in_workspace_ask_and_other_workspace_is_not_adopted(store):
     herdr, jira = FakeHerdr(), FakeJira(keys=["SDO-9"])
     _create_crashing_at(store, herdr, jira, "tab_creating")
-    herdr.add_tab("ticket:v1 SDO-9 · Fix login", "w1")
-    herdr.add_tab("ticket:v1 SDO-9 · Fix login", "w1")
-    herdr.add_tab("ticket:v1 SDO-9 · Fix login", "w2")
+    herdr.add_tab("Fix login", "w1")
+    herdr.add_tab("Fix login", "w1")
+    herdr.add_tab("Fix login", "w2")
 
     prompt = recover(store, herdr, jira, site="acme")
     assert isinstance(prompt, Prompt)
