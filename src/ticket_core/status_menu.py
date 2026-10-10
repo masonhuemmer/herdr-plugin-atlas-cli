@@ -34,6 +34,8 @@ def invalidate_status(cache_path, key: str) -> None:
     """Drop one key from the session status cache so the next fetch asks Jira again."""
     from ticket_core.sync import load_cache, write_cache
 
+    if not Path(cache_path).exists():
+        return
     cache = load_cache(cache_path)
     cache.pop(key, None)
     write_cache(cache_path, cache)  # also repairs an unreadable cache
