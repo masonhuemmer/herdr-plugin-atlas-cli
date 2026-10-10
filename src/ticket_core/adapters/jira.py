@@ -29,6 +29,9 @@ class AtlasJira:
         out = json.loads(self._run(["search", "--jql", jql, "--site", site]))
         return [Issue(item["key"], item["summary"]) for item in out["items"]]
 
+    def transition(self, key: str, status: str, site: str) -> None:
+        self._run(["transition", key, "--name", status, "--site", site])
+
     def status(self, key: str, site: str) -> str | None:
         out = json.loads(self._run(["get", key, "--site", site]))
         return out.get("status")

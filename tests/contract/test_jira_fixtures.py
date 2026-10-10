@@ -76,3 +76,13 @@ def test_status_reads_the_status_field_of_get():
     run = FakeRun(stdout='{"key": "SDO-1", "status": "In Progress"}')
     assert AtlasJira(run=run, atlas="/bin/atlas").status("SDO-1", "acme") == "In Progress"
     assert run.argv == [["/bin/atlas", "jira", "get", "SDO-1", "--site", "acme"]]
+
+
+def test_transition_argv_names_the_status():
+    from ticket_core.adapters.jira import AtlasJira
+    from fake_run import FakeRun
+
+    run = FakeRun(stdout='{"key": "SDO-1", "status": "In Progress"}')
+    AtlasJira(run=run, atlas="/bin/atlas").transition("SDO-1", "In Progress", "acme")
+    assert run.argv == [["/bin/atlas", "jira", "transition", "SDO-1", "--name", "In Progress",
+                         "--site", "acme"]]

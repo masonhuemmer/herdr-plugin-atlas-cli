@@ -34,7 +34,13 @@ class FakeJira:
         self.entered = threading.Event()
         self.creates: list[dict] = []
         self.searches: list[tuple[str, str]] = []
+        self.transitions: list[tuple[str, str]] = []
         self.log = [] if log is None else log
+
+    def transition(self, key: str, status: str, site: str) -> None:
+        if getattr(self, "fail_transition", False):
+            raise RuntimeError("transition failed")
+        self.transitions.append((key, status))
 
     def status(self, key: str, site: str) -> str:
         return getattr(self, 'statuses', {}).get(key, 'To Do')

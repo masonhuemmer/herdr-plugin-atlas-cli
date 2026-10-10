@@ -37,6 +37,8 @@ class Jira(Protocol):
 
     def create(self, project: str, issue_type: str, summary: str, assignee: str, site: str) -> str: ...
 
+    def transition(self, key: str, status: str, site: str) -> None: ...
+
 
 class HerdrLike(Protocol):
     def snapshot(self) -> Snapshot: ...
@@ -83,6 +85,14 @@ def _finish_tab(store, herdr, site, pending, checkpoint):
         herdr.report_token(pending.root_pane_id, pending.key)
     # An adopted tab has no root pane (D25); reconcile reports its token instead.
     _write(store, site, None)  # clears pending and records the site
+
+
+def _start_work(jira, key, site) -> None:
+    # Best effort: a failed move leaves the ticket To Do; the create still stands.
+    try:
+        jira.transition(key, "In Progress", site)
+    except Exception:
+        pass
 
 
 def _after_jira(store, herdr, site, pending, checkpoint):
@@ -155,6 +165,7 @@ def create_ticket(
         key = jira.create(project=project, issue_type=issue_type, summary=text,
                           assignee=assignee, site=site)
         checkpoint("jira_call")
+        _start_work(jira, key, site)
         _after_jira(store, herdr, site, replace(pending, key=key), checkpoint)
 
 
