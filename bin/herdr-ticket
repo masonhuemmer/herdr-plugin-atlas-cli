@@ -1,3 +1,4 @@
 #!/bin/sh
 here=$(cd "$(dirname "$0")/.." && pwd)
-PYTHONPATH="$here/src${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m ticket_core.cli "$@"
+py="${HERDR_TICKET_PYTHON:-/opt/homebrew/bin/python3}"
+PYTHONPATH="$here/src${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m ticket_core.cli "$@"
