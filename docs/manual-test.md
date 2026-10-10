@@ -79,6 +79,12 @@ Run only in the named session `ticket-test` (`--session ticket-test`), and only 
   | `tab_call` | tab created, before `tab_created` | one match in the workspace is adopted without asking; after one reconcile the token is on every pane of that tab |
   | `tab_created` | write | token reported and `pending` cleared |
 
+## Model change and sidebar check (2026-10-10)
+
+- **Binding model:** the binding is the root pane's label (`ticket:v1 <KEY> · <TITLE>`). The tab label is the plain summary (commit 6aa7c03). Steps below that mention tab labels as the binding should be read with the pane label instead.
+- **Sidebar check: pass (operator).** With `claude` running in a bound pane, the sidebar row showed the ticket key and status (`SDO-602 · In Progress`), and the tab name showed only the summary.
+- **Status refresh:** `prefix+u` runs the reconcile action. Status is cached for five minutes per session, so a Jira change shows after the cache expires or after the cache is cleared.
+
 ## CLI results (ticket-test, run 2026-10-10 by the agent; picker and visual steps not run)
 
 - **M8 Rename (CLI part): pass.** Renaming the tab removed the marker; reconcile cleared the `ticket` token. Restoring the marker and reconciling set it back. Row disappearance on screen not checked.
