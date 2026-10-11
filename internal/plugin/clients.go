@@ -247,10 +247,19 @@ type Herdr struct {
 	Runner Runner
 }
 
-func (h Herdr) call(ctx context.Context, out any, args ...string) error {
+func (h Herdr) run(ctx context.Context, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	b, err := h.Runner.Run(ctx, h.Path, args, nil)
+	return h.Runner.Run(ctx, h.Path, args, nil)
+}
+
+func (h Herdr) command(ctx context.Context, args ...string) error {
+	_, err := h.run(ctx, args...)
+	return err
+}
+
+func (h Herdr) call(ctx context.Context, out any, args ...string) error {
+	b, err := h.run(ctx, args...)
 	if err != nil {
 		return err
 	}
@@ -272,13 +281,11 @@ func (h Herdr) Snapshot(ctx context.Context) (Snapshot, error) {
 }
 
 func (h Herdr) RenamePane(ctx context.Context, paneID, label string) error {
-	var out any
-	return h.call(ctx, &out, "pane", "rename", paneID, label)
+	return h.command(ctx, "pane", "rename", paneID, label)
 }
 
 func (h Herdr) ClearPaneLabel(ctx context.Context, paneID string) error {
-	var out any
-	return h.call(ctx, &out, "pane", "rename", paneID, "--clear")
+	return h.command(ctx, "pane", "rename", paneID, "--clear")
 }
 
 func (h Herdr) Report(ctx context.Context, paneID string, tokens map[string]string) error {
@@ -290,8 +297,7 @@ func (h Herdr) Report(ctx context.Context, paneID string, tokens map[string]stri
 			args = append(args, "--clear-token", key)
 		}
 	}
-	var out any
-	return h.call(ctx, &out, args...)
+	return h.command(ctx, args...)
 }
 
 func (h Herdr) OpenOverlay(ctx context.Context, entrypoint, paneID, workspace, cwd string) error {
@@ -299,8 +305,7 @@ func (h Herdr) OpenOverlay(ctx context.Context, entrypoint, paneID, workspace, c
 		"--env", "HERDR_TICKET_TARGET_PANE_ID=" + paneID,
 		"--env", "HERDR_TICKET_WORKSPACE_ID=" + workspace,
 		"--env", "HERDR_TICKET_CWD=" + cwd}
-	var out any
-	return h.call(ctx, &out, args...)
+	return h.command(ctx, args...)
 }
 
 func (h Herdr) TabCreate(ctx context.Context, workspace, cwd, label, ticketKey string) (string, error) {
