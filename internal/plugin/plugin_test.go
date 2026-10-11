@@ -49,10 +49,12 @@ type fakeRunner struct {
 	claude          int
 	placement       int
 	create          int
+	createSuccess   bool
 	transitionID    string
 	commentCount    int
 	commentInternal bool
 	reports         map[string]map[string]string
+	tabArgs         []string
 }
 
 func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []byte) ([]byte, error) {
@@ -91,6 +93,9 @@ func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []
 				}
 			}
 			f.reports[args[2]] = tokens
+		case len(args) > 1 && args[0] == "tab" && args[1] == "create":
+			f.tabArgs = append([]string(nil), args...)
+			result = map[string]any{"root_pane": map[string]any{"pane_id": "w1:p2"}}
 		}
 		b, _ := json.Marshal(map[string]any{"result": result})
 		return b, nil
@@ -98,6 +103,9 @@ func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []
 	if path == "atlas" {
 		if len(args) >= 2 && args[0] == "jira" && args[1] == "create" {
 			f.create++
+			if f.createSuccess {
+				return []byte(`{"key":"SDO-1","summary":"Work"}`), nil
+			}
 			return nil, fmt.Errorf("uncertain create result")
 		}
 		if len(args) >= 3 && args[0] == "jira" && args[1] == "get" {
@@ -134,6 +142,57 @@ func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []
 		}
 	}
 	return nil, fmt.Errorf("unexpected command %s %v", path, args)
+}
+
+func TestNewTicketTabSetsFactoryTicket(t *testing.T) {
+	f := &fakeRunner{}
+	paneID, err := (Herdr{Path: "herdr", Runner: f}).TabCreate(context.Background(), "w1", "/repo", "Work", "SDO-588")
+	if err != nil || paneID != "w1:p2" {
+		t.Fatalf("pane %q: %v", paneID, err)
+	}
+	for i := range f.tabArgs {
+		if f.tabArgs[i] == "--env" && i+1 < len(f.tabArgs) && f.tabArgs[i+1] == "FACTORY_TICKET=SDO-588" {
+			return
+		}
+	}
+	t.Fatalf("missing ticket environment: %v", f.tabArgs)
+}
+
+func TestAttachingExistingTicketToNewTabPassesFactoryTicket(t *testing.T) {
+	f := &fakeRunner{
+		snapshot:   Snapshot{Panes: []Pane{{PaneID: "w1:p1"}, {PaneID: "w1:p2"}}},
+		placements: map[string]Placement{"SDO-1": {SchemaVersion: 1, BoardID: 42, Key: "SDO-1", Summary: "Work", State: "in_column", Column: "Doing"}},
+	}
+	a := testApp(t, f)
+	a.Env["HERDR_TICKET_WORKSPACE_ID"] = "w1"
+	a.Env["HERDR_TICKET_CWD"] = "/repo"
+	a.Config.Board = 42
+	var out bytes.Buffer
+	if err := a.Pick(context.Background(), NewScreen(strings.NewReader("SDO-1\nn\n"), &out)); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(f.tabArgs, " "), "FACTORY_TICKET=SDO-1") {
+		t.Fatalf("tab args %v", f.tabArgs)
+	}
+}
+
+func TestCreatingTicketInNewTabPassesFactoryTicket(t *testing.T) {
+	f := &fakeRunner{
+		createSuccess: true,
+		snapshot:      Snapshot{Panes: []Pane{{PaneID: "w1:p1"}, {PaneID: "w1:p2"}}},
+		placements:    map[string]Placement{"SDO-1": {SchemaVersion: 1, BoardID: 42, Key: "SDO-1", Summary: "Work", State: "in_column", Column: "Doing"}},
+	}
+	a := testApp(t, f)
+	a.Env["HERDR_TICKET_WORKSPACE_ID"] = "w1"
+	a.Env["HERDR_TICKET_CWD"] = "/repo"
+	a.Config.Project, a.Config.IssueType, a.Config.Board = "SDO", "Task", 42
+	var out bytes.Buffer
+	if err := a.Pick(context.Background(), NewScreen(strings.NewReader("+ Work\ny\nn\n"), &out)); err != nil {
+		t.Fatal(err)
+	}
+	if f.create != 1 || !strings.Contains(strings.Join(f.tabArgs, " "), "FACTORY_TICKET=SDO-1") {
+		t.Fatalf("creates %d, tab args %v", f.create, f.tabArgs)
+	}
 }
 
 func testApp(t *testing.T, f *fakeRunner) *App {
