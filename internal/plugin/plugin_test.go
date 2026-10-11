@@ -57,6 +57,33 @@ type fakeRunner struct {
 	tabArgs         []string
 }
 
+type silentMutationRunner struct{ *fakeRunner }
+
+func (r silentMutationRunner) Run(ctx context.Context, path string, args []string, stdin []byte) ([]byte, error) {
+	output, err := r.fakeRunner.Run(ctx, path, args, stdin)
+	if err == nil && path == "herdr" && len(args) > 1 && args[0] == "pane" && (args[1] == "rename" || args[1] == "report-metadata") {
+		return nil, nil // Herdr's successful mutation commands write no JSON.
+	}
+	return output, err
+}
+
+func TestBindExistingPaneWithSilentHerdrMutations(t *testing.T) {
+	f := &fakeRunner{
+		snapshot: Snapshot{Panes: []Pane{{PaneID: "w1:p1"}}},
+		placements: map[string]Placement{
+			"SDO-591": {SchemaVersion: 1, BoardID: 423, Key: "SDO-591", Summary: "Prod Seed Data", State: "in_column", Column: "Doing"},
+		},
+	}
+	a := testApp(t, f)
+	a.Herdr.Runner = silentMutationRunner{f}
+	if err := a.bind(context.Background(), "w1:p1", Binding{BoardID: 423, Key: "SDO-591", Title: "Prod Seed Data"}); err != nil {
+		t.Fatal(err)
+	}
+	if f.reports["w1:p1"]["ticket"] != "SDO-591" {
+		t.Fatalf("ticket metadata was not reported: %+v", f.reports)
+	}
+}
+
 func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []byte) ([]byte, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("missing args")
