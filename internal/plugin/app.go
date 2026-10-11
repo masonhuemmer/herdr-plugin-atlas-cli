@@ -233,6 +233,17 @@ func (a *App) bind(ctx context.Context, paneID string, b Binding) error {
 	}
 	snap, err := a.Herdr.Snapshot(ctx)
 	if err == nil {
+		if pane, ok := snap.Pane(paneID); ok && pane.TabID != "" {
+			count, err := a.Herdr.TabPaneCount(ctx, pane.TabID)
+			if err != nil {
+				return err
+			}
+			if count == 1 {
+				if err := a.Herdr.RenameTab(ctx, pane.TabID, truncateRunes(b.Title, 80)); err != nil {
+					return err
+				}
+			}
+		}
 		if agent, ok := snap.Agent(paneID); ok && agent.SessionID() != "" {
 			_ = updateState(a.Dir, func(s *State) error { s.Sessions[paneID] = agent.SessionID(); return nil })
 		}
