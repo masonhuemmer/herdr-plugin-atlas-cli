@@ -1,8 +1,0 @@
-{
-  "dry_run": true,
-  "namespace": "jira",
-  "verb": "create",
-  "project": "EX",
-  "assignee": "<redacted-account-id>",
-  "summary": "Example ticket summary"
-}

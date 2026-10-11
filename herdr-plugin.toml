@@ -1,44 +1,77 @@
 id = "herdr-plugin-atlas-cli"
 name = "Herdr Atlas CLI"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.9.1"
-description = "Bind Herdr tabs to Jira tickets"
-platforms = ["macos", "linux"]
+description = "Show each agent pane's Jira ticket and exact board column"
+platforms = ["macos", "linux", "windows"]
+
+[[build]]
+command = ["go", "build", "-o", "herdr-plugin-atlas-cli.exe", "./cmd/herdr-plugin-atlas-cli"]
 
 [[startup]]
-command = ["sh", "bin/herdr-plugin-atlas-cli", "startup"]
+command = ["./herdr-plugin-atlas-cli.exe", "startup"]
 
 [[actions]]
 id = "new-ticket-tab"
 title = "New ticket tab"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "open-picker"]
+command = ["./herdr-plugin-atlas-cli.exe", "open-picker"]
 
 [[actions]]
 id = "set-status"
 title = "Set ticket status"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "open-status"]
+command = ["./herdr-plugin-atlas-cli.exe", "open-status"]
 
 [[actions]]
 id = "reconcile"
 title = "Reconcile ticket rows"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
+command = ["./herdr-plugin-atlas-cli.exe", "refresh"]
+
+[[actions]]
+id = "ticket-detail"
+title = "Jira ticket detail"
+command = ["./herdr-plugin-atlas-cli.exe", "open-detail"]
+
+[[actions]]
+id = "draft-update"
+title = "Draft Jira update"
+command = ["./herdr-plugin-atlas-cli.exe", "open-draft"]
 
 [[panes]]
 id = "picker"
 title = "Ticket picker"
 placement = "overlay"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "picker"]
+command = ["./herdr-plugin-atlas-cli.exe", "picker"]
 
 [[panes]]
 id = "status"
 title = "Ticket status"
 placement = "overlay"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "status"]
+command = ["./herdr-plugin-atlas-cli.exe", "status"]
+
+[[panes]]
+id = "detail"
+title = "Jira ticket detail"
+placement = "overlay"
+command = ["./herdr-plugin-atlas-cli.exe", "detail"]
+
+[[panes]]
+id = "draft"
+title = "Draft Jira update"
+placement = "overlay"
+command = ["./herdr-plugin-atlas-cli.exe", "draft"]
 
 [[events]]
 on = "pane.created"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
+command = ["./herdr-plugin-atlas-cli.exe", "reconcile"]
 
 [[events]]
 on = "tab.renamed"
-command = ["sh", "bin/herdr-plugin-atlas-cli", "reconcile"]
+command = ["./herdr-plugin-atlas-cli.exe", "reconcile"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["./herdr-plugin-atlas-cli.exe", "reconcile"]
+
+[[events]]
+on = "pane.focused"
+command = ["./herdr-plugin-atlas-cli.exe", "reconcile"]

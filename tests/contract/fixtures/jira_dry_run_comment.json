@@ -1,7 +1,0 @@
-{
-  "dry_run": true,
-  "namespace": "jira",
-  "verb": "comment",
-  "key": "EX-601",
-  "body": "herdr-ticket dry run"
-}
