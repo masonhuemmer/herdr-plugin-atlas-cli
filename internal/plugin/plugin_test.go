@@ -85,7 +85,7 @@ func TestBindExistingPaneWithSilentHerdrMutations(t *testing.T) {
 	if f.reports["w1:p1"]["ticket"] != "SDO-591" {
 		t.Fatalf("ticket metadata was not reported: %+v", f.reports)
 	}
-	if f.tabRename != "SDO-591 · Prod Seed Data" {
+	if f.tabRename != "Prod Seed Data" {
 		t.Fatalf("tab rename = %q", f.tabRename)
 	}
 }
@@ -102,7 +102,7 @@ func TestBindRenamesSinglePaneTab(t *testing.T) {
 	if err := a.bind(context.Background(), "w1:p1", Binding{BoardID: 423, Key: "SDO-591", Title: "Prod Seed Data"}); err != nil {
 		t.Fatal(err)
 	}
-	if f.tabRename != "SDO-591 · Prod Seed Data" {
+	if f.tabRename != "Prod Seed Data" {
 		t.Fatalf("tab rename = %q", f.tabRename)
 	}
 }

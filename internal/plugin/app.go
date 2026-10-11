@@ -239,7 +239,7 @@ func (a *App) bind(ctx context.Context, paneID string, b Binding) error {
 				return err
 			}
 			if count == 1 {
-				if err := a.Herdr.RenameTab(ctx, pane.TabID, truncateRunes(b.Key+" · "+b.Title, 80)); err != nil {
+				if err := a.Herdr.RenameTab(ctx, pane.TabID, truncateRunes(b.Title, 80)); err != nil {
 					return err
 				}
 			}
