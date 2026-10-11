@@ -284,6 +284,20 @@ func (h Herdr) RenamePane(ctx context.Context, paneID, label string) error {
 	return h.command(ctx, "pane", "rename", paneID, label)
 }
 
+func (h Herdr) TabPaneCount(ctx context.Context, tabID string) (int, error) {
+	var result struct {
+		Tab struct {
+			PaneCount int `json:"pane_count"`
+		} `json:"tab"`
+	}
+	err := h.call(ctx, &result, "tab", "get", tabID)
+	return result.Tab.PaneCount, err
+}
+
+func (h Herdr) RenameTab(ctx context.Context, tabID, label string) error {
+	return h.command(ctx, "tab", "rename", tabID, label)
+}
+
 func (h Herdr) ClearPaneLabel(ctx context.Context, paneID string) error {
 	return h.command(ctx, "pane", "rename", paneID, "--clear")
 }

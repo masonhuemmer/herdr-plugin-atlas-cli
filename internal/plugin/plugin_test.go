@@ -55,13 +55,15 @@ type fakeRunner struct {
 	commentInternal bool
 	reports         map[string]map[string]string
 	tabArgs         []string
+	tabPaneCount    int
+	tabRename       string
 }
 
 type silentMutationRunner struct{ *fakeRunner }
 
 func (r silentMutationRunner) Run(ctx context.Context, path string, args []string, stdin []byte) ([]byte, error) {
 	output, err := r.fakeRunner.Run(ctx, path, args, stdin)
-	if err == nil && path == "herdr" && len(args) > 1 && args[0] == "pane" && (args[1] == "rename" || args[1] == "report-metadata") {
+	if err == nil && path == "herdr" && len(args) > 1 && ((args[0] == "pane" && (args[1] == "rename" || args[1] == "report-metadata")) || (args[0] == "tab" && args[1] == "rename")) {
 		return nil, nil // Herdr's successful mutation commands write no JSON.
 	}
 	return output, err
@@ -69,7 +71,8 @@ func (r silentMutationRunner) Run(ctx context.Context, path string, args []strin
 
 func TestBindExistingPaneWithSilentHerdrMutations(t *testing.T) {
 	f := &fakeRunner{
-		snapshot: Snapshot{Panes: []Pane{{PaneID: "w1:p1"}}},
+		snapshot:     Snapshot{Panes: []Pane{{PaneID: "w1:p1", TabID: "w1:t1"}}},
+		tabPaneCount: 1,
 		placements: map[string]Placement{
 			"SDO-591": {SchemaVersion: 1, BoardID: 423, Key: "SDO-591", Summary: "Prod Seed Data", State: "in_column", Column: "Doing"},
 		},
@@ -81,6 +84,43 @@ func TestBindExistingPaneWithSilentHerdrMutations(t *testing.T) {
 	}
 	if f.reports["w1:p1"]["ticket"] != "SDO-591" {
 		t.Fatalf("ticket metadata was not reported: %+v", f.reports)
+	}
+	if f.tabRename != "SDO-591 · Prod Seed Data" {
+		t.Fatalf("tab rename = %q", f.tabRename)
+	}
+}
+
+func TestBindRenamesSinglePaneTab(t *testing.T) {
+	f := &fakeRunner{
+		snapshot:     Snapshot{Panes: []Pane{{PaneID: "w1:p1", TabID: "w1:t1"}}},
+		tabPaneCount: 1,
+		placements: map[string]Placement{
+			"SDO-591": {SchemaVersion: 1, BoardID: 423, Key: "SDO-591", Summary: "Prod Seed Data", State: "in_column", Column: "Doing"},
+		},
+	}
+	a := testApp(t, f)
+	if err := a.bind(context.Background(), "w1:p1", Binding{BoardID: 423, Key: "SDO-591", Title: "Prod Seed Data"}); err != nil {
+		t.Fatal(err)
+	}
+	if f.tabRename != "SDO-591 · Prod Seed Data" {
+		t.Fatalf("tab rename = %q", f.tabRename)
+	}
+}
+
+func TestBindKeepsMultiPaneTabName(t *testing.T) {
+	f := &fakeRunner{
+		snapshot:     Snapshot{Panes: []Pane{{PaneID: "w1:p1", TabID: "w1:t1"}, {PaneID: "w1:p2", TabID: "w1:t1"}}},
+		tabPaneCount: 2,
+		placements: map[string]Placement{
+			"SDO-591": {SchemaVersion: 1, BoardID: 423, Key: "SDO-591", Summary: "Prod Seed Data", State: "in_column", Column: "Doing"},
+		},
+	}
+	a := testApp(t, f)
+	if err := a.bind(context.Background(), "w1:p1", Binding{BoardID: 423, Key: "SDO-591", Title: "Prod Seed Data"}); err != nil {
+		t.Fatal(err)
+	}
+	if f.tabRename != "" {
+		t.Fatalf("multi-pane tab was renamed to %q", f.tabRename)
 	}
 }
 
@@ -123,6 +163,10 @@ func (f *fakeRunner) Run(_ context.Context, path string, args []string, stdin []
 		case len(args) > 1 && args[0] == "tab" && args[1] == "create":
 			f.tabArgs = append([]string(nil), args...)
 			result = map[string]any{"root_pane": map[string]any{"pane_id": "w1:p2"}}
+		case len(args) > 2 && args[0] == "tab" && args[1] == "get":
+			result = map[string]any{"tab": map[string]any{"pane_count": f.tabPaneCount}}
+		case len(args) > 3 && args[0] == "tab" && args[1] == "rename":
+			f.tabRename = args[3]
 		}
 		b, _ := json.Marshal(map[string]any{"result": result})
 		return b, nil
