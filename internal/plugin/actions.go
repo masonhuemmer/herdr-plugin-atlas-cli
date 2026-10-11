@@ -46,12 +46,13 @@ func (a *App) OpenAction(ctx context.Context, entrypoint string) error {
 }
 
 type Screen struct {
+	Input  io.Reader
 	Reader *bufio.Reader
 	Out    io.Writer
 }
 
 func NewScreen(in io.Reader, out io.Writer) *Screen {
-	return &Screen{Reader: bufio.NewReader(in), Out: out}
+	return &Screen{Input: in, Reader: bufio.NewReader(in), Out: out}
 }
 
 func (s *Screen) Ask(prompt string) (string, error) {
@@ -75,13 +76,19 @@ func (a *App) Pick(ctx context.Context, s *Screen) error {
 	if handled, err := a.recoverPending(ctx, s, target); handled || err != nil {
 		return err
 	}
-	fmt.Fprintln(s.Out, "Attach a Jira ticket to this pane")
-	query, err := s.Ask("Issue key or search text (+summary to create, blank to cancel): ")
+	query := ""
+	issue := Issue{}
+	selected := false
+	if s.Interactive() {
+		issue, query, selected, err = a.pickInteractive(ctx, s)
+	} else {
+		fmt.Fprintln(s.Out, "Attach a Jira ticket to this pane")
+		query, err = s.Ask("Issue key or search text (+summary to create, blank to cancel): ")
+	}
 	if err != nil || query == "" {
 		return err
 	}
-	var issue Issue
-	if strings.HasPrefix(query, "+") {
+	if !selected && strings.HasPrefix(query, "+") {
 		if a.Config.Project == "" || a.Config.IssueType == "" {
 			return fmt.Errorf("create requires project and issue_type in plugin config")
 		}
@@ -116,12 +123,12 @@ func (a *App) Pick(ctx context.Context, s *Screen) error {
 		if err := a.Atlas.Transition(ctx, issue.Key, "In Progress"); err != nil {
 			fmt.Fprintf(s.Out, "Ticket created; In Progress transition was unavailable: %v\n", err)
 		}
-	} else if issueKey.MatchString(strings.ToUpper(query)) {
+	} else if !selected && issueKey.MatchString(strings.ToUpper(query)) {
 		issue, err = a.Atlas.Get(ctx, strings.ToUpper(query))
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if !selected {
 		matches, err := a.Atlas.Search(ctx, searchJQL(query))
 		if err != nil {
 			return err

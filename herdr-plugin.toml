@@ -1,6 +1,6 @@
 id = "herdr-plugin-atlas-cli"
 name = "Herdr Atlas CLI"
-version = "0.2.0"
+version = "0.3.0"
 min_herdr_version = "0.9.1"
 description = "Show each agent pane's Jira ticket and exact board column"
 platforms = ["macos", "linux", "windows"]

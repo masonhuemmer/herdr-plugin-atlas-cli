@@ -47,6 +47,9 @@ func (a Atlas) CheckBoardSupport(ctx context.Context) error {
 	if err != nil || !strings.Contains(string(b), "board placement") {
 		return fmt.Errorf("Atlas lacks Jira board placement; install an Atlas build with board support")
 	}
+	if !strings.Contains(string(b), "suggest:") {
+		return fmt.Errorf("Atlas lacks Jira issue suggestions; install an Atlas build with jira suggest support")
+	}
 	return nil
 }
 
@@ -55,6 +58,12 @@ type Issue struct {
 	Summary   string `json:"summary"`
 	Status    string `json:"status"`
 	BrowseURL string `json:"browse_url"`
+}
+
+type SearchPage struct {
+	Items         []Issue `json:"items"`
+	NextPageToken string  `json:"next_page_token"`
+	IsLast        bool    `json:"is_last"`
 }
 
 type Board struct {
@@ -111,6 +120,28 @@ func (a Atlas) Search(ctx context.Context, jql string) ([]Issue, error) {
 		Items []Issue `json:"items"`
 	}
 	err := a.call(ctx, &out, "search", "--jql", jql, "--site", a.Site)
+	return out.Items, err
+}
+
+func (a Atlas) SearchPage(ctx context.Context, jql string, limit int, pageToken string) (SearchPage, error) {
+	args := []string{"search", "--jql", jql, "--limit", strconv.Itoa(limit), "--site", a.Site}
+	if pageToken != "" {
+		args = append(args, "--page-token", pageToken)
+	}
+	var out SearchPage
+	err := a.call(ctx, &out, args...)
+	return out, err
+}
+
+func (a Atlas) Suggest(ctx context.Context, query, project string) ([]Issue, error) {
+	args := []string{"suggest", "--query", query, "--site", a.Site}
+	if project != "" {
+		args = append(args, "--project", project)
+	}
+	var out struct {
+		Items []Issue `json:"items"`
+	}
+	err := a.call(ctx, &out, args...)
 	return out.Items, err
 }
 

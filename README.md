@@ -7,7 +7,7 @@ The plugin keeps Herdr's agent state separate from Jira status. It reports the t
 ## Requirements
 
 - Herdr 0.9.1 or later.
-- An Atlas build with `jira boards`, `jira board placement`, and `jira transitions` commands, signed in to the Jira site.
+- An Atlas build with `jira boards`, `jira board placement`, `jira transitions`, `jira suggest`, and paginated `jira search` commands, signed in to the Jira site.
 - Go 1.25 or later when building from source. The manifest builds one native executable at install time.
 - Claude Code CLI only for the optional draft action.
 
@@ -44,7 +44,7 @@ The manifest action IDs retain the existing plugin ID and bindings: `new-ticket-
 
 ## Using it
 
-- **Attach:** open the picker, enter an issue key or search text, select a result, then attach it to the focused pane or open it in a new tab. Prefix a summary with `+` to create a task. A pending create is saved before the Jira call; after an uncertain result, the picker asks you to find or discard that issue rather than create another one.
+- **Attach:** open the picker to see up to ten of your recently updated active tickets, falling back to active project tickets if none are assigned to you. Type to filter them immediately; after a 300 ms pause, Jira issue-picker suggestions widen the candidate list. A typo of one character in a summary word can still match a recent ticket. Use ↑/↓ and Enter to select, or Esc to close. Enter an exact issue key to fetch it directly; prefix a summary with `+` to create a task. The list loads up to 50 recent candidates, while Jira suggestions search beyond that page. Non-interactive input retains the line prompt. A pending create is saved before the Jira call; after an uncertain result, the picker asks you to find or discard that issue rather than create another one.
 - **Column:** the sidebar shows the selected board's exact column name. `Not on board`, `Unmapped status`, `Board unavailable`, and `Stale` are shown explicitly. A changed agent session in the same pane shows `Verify ticket` until confirmed in detail.
 - **Detail:** shows the board, status, assignee, refresh time, and validated Jira link. Open uses the server machine's default browser. Set `remote = true` in plugin config when the Herdr server is remote; detail offers the link for copying instead.
 - **Transition:** lists transitions Jira currently allows and previews the destination board column when mapped.
