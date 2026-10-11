@@ -171,7 +171,7 @@ func (a *App) Pick(ctx context.Context, s *Screen) error {
 		if target.Workspace == "" || target.CWD == "" {
 			return fmt.Errorf("new tab needs workspace and cwd from Herdr action context")
 		}
-		paneID, err = a.Herdr.TabCreate(ctx, target.Workspace, target.CWD, issue.Summary)
+		paneID, err = a.Herdr.TabCreate(ctx, target.Workspace, target.CWD, issue.Summary, issue.Key)
 		if err != nil {
 			return err
 		}
@@ -185,6 +185,9 @@ func (a *App) Pick(ctx context.Context, s *Screen) error {
 		}
 	}
 	fmt.Fprintf(s.Out, "Bound %s to pane %s on board %d\n", issue.Key, paneID, boardID)
+	if !strings.EqualFold(mode, "n") {
+		fmt.Fprintln(s.Out, "FACTORY_TICKET is unchanged in running processes. Open a new ticket tab to pass it to a new agent.")
+	}
 	return nil
 }
 
@@ -240,6 +243,7 @@ func (a *App) recoverPending(ctx context.Context, s *Screen, target ActionTarget
 		return true, err
 	}
 	fmt.Fprintf(s.Out, "Recovered %s without another Jira create\n", key)
+	fmt.Fprintln(s.Out, "FACTORY_TICKET is unchanged in running processes. Open a new ticket tab to pass it to a new agent.")
 	return true, nil
 }
 

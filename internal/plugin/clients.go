@@ -303,8 +303,8 @@ func (h Herdr) OpenOverlay(ctx context.Context, entrypoint, paneID, workspace, c
 	return h.call(ctx, &out, args...)
 }
 
-func (h Herdr) TabCreate(ctx context.Context, workspace, cwd, label string) (string, error) {
-	args := []string{"tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", label, "--focus"}
+func (h Herdr) TabCreate(ctx context.Context, workspace, cwd, label, ticketKey string) (string, error) {
+	args := []string{"tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", label, "--env", "FACTORY_TICKET=" + ticketKey, "--focus"}
 	var out struct {
 		RootPane struct {
 			PaneID string `json:"pane_id"`
